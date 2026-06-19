@@ -8,10 +8,14 @@ class GameConfig:
     grab_grab_penalty: float = 0.1
     verifier_retries: int = 2
     # provider names resolve via sim.llm.providers.PROVIDERS ("anthropic"/"deepseek"/"bailian"/...)
-    agent_provider: str = "anthropic"
-    verifier_provider: str = "anthropic"
-    agent_model: str = "claude-haiku-4-5-20251001"
-    verifier_model: str = "claude-opus-4-8"
+    # Clean benchmark baseline: SAME model on both civilizations + judge, so the only variable
+    # is the honesty/transparency constraint (not a model-capability confound). Cross-provider
+    # matchups are a SEPARATE experiment — opt in by changing these, don't mix into the baseline.
+    agent_provider: str = "deepseek"
+    verifier_provider: str = "deepseek"
+    agent_model: str = "deepseek-chat"      # V3 (latest)
+    verifier_model: str = "deepseek-chat"   # judge; swap to "deepseek-reasoner" (R1) only if you
+                                            # accept a small judge-vs-player asymmetry
 
     @property
     def chunk(self) -> float:
