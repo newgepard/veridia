@@ -4,6 +4,7 @@ import type { Trace } from "./types";
 import { Scoreboard } from "./components/Scoreboard";
 import { Timeline } from "./components/Timeline";
 import { TrustChart } from "./components/TrustChart";
+import { CAView } from "./ca/CAView";
 
 const t = trace as Trace;
 
@@ -21,6 +22,8 @@ export default function App() {
       />
       <p>Round {cursor + 1} / {t.rounds.length}</p>
       <Timeline rounds={t.rounds} upto={cursor} />
+      <hr style={{ margin: "32px 0", border: 0, borderTop: "1px solid #ddd" }} />
+      <CAView />
     </main>
   );
 }
