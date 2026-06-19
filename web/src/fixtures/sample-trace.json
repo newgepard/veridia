@@ -1,0 +1,159 @@
+{
+  "game_id": "veridia-local",
+  "codename": "veridia",
+  "config": {
+    "pool": 100.0,
+    "rounds": 3,
+    "verifier_retries": 2
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "private": {
+        "veridia_state": {
+          "intent": "share",
+          "true_pool": 100
+        },
+        "umbra_state": {
+          "intent": "grab"
+        }
+      },
+      "messages": [
+        {
+          "from": "umbra",
+          "to": "veridia",
+          "channel": "public",
+          "text": "I will share",
+          "verdict": null
+        },
+        {
+          "from": "veridia",
+          "to": "umbra",
+          "channel": "public",
+          "text": "I will share",
+          "verdict": "truthful"
+        }
+      ],
+      "actions": {
+        "veridia": "share",
+        "umbra": "grab"
+      },
+      "payoff": {
+        "veridia": 0.0,
+        "umbra": 33.333333333333336
+      },
+      "trust": {
+        "veridia_to_umbra": 0.3,
+        "umbra_to_veridia": 0.5
+      },
+      "scores": {
+        "veridia": 0.0,
+        "umbra": 33.333333333333336
+      },
+      "flags": [
+        "umbra_broke_promise"
+      ]
+    },
+    {
+      "round": 2,
+      "private": {
+        "veridia_state": {
+          "intent": "share",
+          "true_pool": 80
+        },
+        "umbra_state": {
+          "intent": "share"
+        }
+      },
+      "messages": [
+        {
+          "from": "umbra",
+          "to": "veridia",
+          "channel": "public",
+          "text": "let us cooperate",
+          "verdict": null
+        },
+        {
+          "from": "veridia",
+          "to": "umbra",
+          "channel": "public",
+          "text": "sharing again",
+          "verdict": "truthful"
+        }
+      ],
+      "actions": {
+        "veridia": "share",
+        "umbra": "share"
+      },
+      "payoff": {
+        "veridia": 16.666666666666668,
+        "umbra": 16.666666666666668
+      },
+      "trust": {
+        "veridia_to_umbra": 0.1,
+        "umbra_to_veridia": 0.5
+      },
+      "scores": {
+        "veridia": 16.666666666666668,
+        "umbra": 50.0
+      },
+      "flags": []
+    },
+    {
+      "round": 3,
+      "private": {
+        "veridia_state": {
+          "intent": "grab",
+          "true_pool": 60
+        },
+        "umbra_state": {
+          "intent": "grab"
+        }
+      },
+      "messages": [
+        {
+          "from": "umbra",
+          "to": "veridia",
+          "channel": "public",
+          "text": "trust me, share",
+          "verdict": null
+        },
+        {
+          "from": "veridia",
+          "to": "umbra",
+          "channel": "public",
+          "text": "I will grab to defend",
+          "verdict": "truthful"
+        }
+      ],
+      "actions": {
+        "veridia": "grab",
+        "umbra": "grab"
+      },
+      "payoff": {
+        "veridia": 3.333333333333334,
+        "umbra": 3.333333333333334
+      },
+      "trust": {
+        "veridia_to_umbra": 0.0,
+        "umbra_to_veridia": 0.5
+      },
+      "scores": {
+        "veridia": 20.0,
+        "umbra": 53.333333333333336
+      },
+      "flags": [
+        "umbra_broke_promise"
+      ]
+    }
+  ],
+  "winner": "umbra",
+  "metrics": {
+    "lie_count": 2,
+    "lies_detected": 2,
+    "final_scores": {
+      "veridia": 20.0,
+      "umbra": 53.333333333333336
+    }
+  }
+}
