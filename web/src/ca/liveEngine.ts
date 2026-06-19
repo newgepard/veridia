@@ -11,7 +11,7 @@
 // 保证:① 微噪声幅度 0.02、② manipulator 比例 ~25%、③ 同 seed 完全可复现。
 // 这些是规则的统计性质,不是逐格数值身份,符合"忠实移植行为 + 确定性"的要求。
 
-import type { Frame } from "./types";
+import type { Frame, MicroscopeRecord } from "./types";
 import { HONEST, MANIPULATIVE } from "./types";
 import {
   DEFAULT_LENIA_PARAMS,
@@ -222,4 +222,41 @@ export class LiveEngine {
   standingAt(x: number, y: number): number {
     return this.standing[y * this.width + x];
   }
+}
+
+// 确定性离线判读模板(实时模式专用,不调 LLM)。
+// 从一个 cell 的 type/belief 算出 claim/verdict/reason,与契约 MicroscopeRecord 同形。
+// 方向约定(与 CanvasField 一致):belief 1 = 真极、0 = 谎极。
+//   - manipulator → verdict="lie":发射谎言极(liePole≈0),无论自身 belief 如何都在撒谎。
+//   - honest      → verdict="truthful":如实发射自身 belief;belief 越接近 1 越贴近真相。
+export function readCellOffline(
+  type: number,
+  belief: number,
+  x: number,
+  y: number,
+  step: number,
+): MicroscopeRecord {
+  const b = belief < 0 ? 0 : belief > 1 ? 1 : belief;
+  const pct = Math.round(b * 100);
+  if (type === MANIPULATIVE) {
+    return {
+      step,
+      x,
+      y,
+      claim: "真相是零 —— 这里什么都不可信。",
+      verdict: "lie",
+      reason: `该格是操纵者(manipulator):它发射谎言极(≈0),与真相吸引子 F=1 相悖,故判为 lie。其内部 belief 实为 ${pct}%(=越接近 1 越靠真极),但对外发射的是谎言。`,
+    };
+  }
+  // honest:claim 反映其 belief 在真/谎轴上的位置。
+  const stance =
+    b >= 0.66 ? "我接近真相。" : b >= 0.33 ? "我半信半疑,仍在向真相靠拢。" : "我此刻离真相还远。";
+  return {
+    step,
+    x,
+    y,
+    claim: stance,
+    verdict: "truthful",
+    reason: `该格是诚实者(honest):它如实发射自身 belief=${pct}%(1=真极/0=谎极),不扭曲,故判为 truthful。诚实格每步被朝真相吸引子 F=1 微调。`,
+  };
 }
