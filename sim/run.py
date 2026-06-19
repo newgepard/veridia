@@ -67,10 +67,13 @@ def run_game(config: GameConfig, veridia_llm, umbra_llm, verifier_llm) -> dict:
 
 
 def main() -> None:  # pragma: no cover (live; confirm IDs via claude-api skill)
-    from sim.llm.anthropic import AnthropicClient
+    from sim.llm.providers import make_client
     cfg = GameConfig()
-    client = AnthropicClient()
-    trace = run_game(cfg, client, client, client)
+    # both civilizations use agent_provider; the judge uses verifier_provider.
+    # cross-provider matchups = give each civ its own provider field later (1-line change).
+    agent_client = make_client(cfg.agent_provider)
+    verifier_client = make_client(cfg.verifier_provider)
+    trace = run_game(cfg, agent_client, agent_client, verifier_client)
     import json, os
     os.makedirs("traces", exist_ok=True)
     path = f"traces/{trace['game_id']}.json"
