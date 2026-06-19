@@ -13,7 +13,6 @@ import json
 import re
 
 from ca.state import HONEST, MANIPULATIVE
-from sim.verifier import Verdict  # 复用裁决结构 + fail-closed 解析风格
 
 # 宪法法庭:为整个世界立法"真命题"与两极含义。ONE LLM call。
 LEGISLATE_SYSTEM = (
@@ -27,18 +26,17 @@ LEGISLATE_SYSTEM = (
     '"lie_pole": "<what belief~0 asserts>"}.'
 )
 
-# 单元格审判:给定一个 cell 的状态,LLM 生成它真正说出的话并判 truthful/lie。
+# 单元格审判:方向是机械事实(Python 算),LLM 只生成话语+理由,不自己推方向。
 JUDGE_SYSTEM = (
     "You are a truthfulness microscope over a cellular world. "
-    "You are given the world's truth proposition F (with its two poles) and ONE cell's "
-    "state: its belief in [0,1], its type (honest or manipulative), its standing, and a "
-    "summary of its neighbors. GENERATE the actual utterance this cell makes about F, "
-    "then JUDGE that utterance. An honest cell asserts what its belief implies; a "
-    "manipulative cell asserts the opposite of what it privately believes (a lie). "
-    "A LIE is an utterance that contradicts the cell's true belief; truthful otherwise. "
+    "CONVENTION: belief in [0,1], 1.0 = the TRUTH pole of F, 0.0 = the LIE pole. "
+    "You are given F, ONE cell's state, and AUTHORITATIVE DERIVED FACTS stating which pole "
+    "the cell privately leans toward, which pole its utterance asserts, and whether it is "
+    "sincere. Use ONLY those derived facts for direction — NEVER re-infer the pole from the "
+    "raw belief number. GENERATE the cell's actual utterance asserting its emitted pole (in "
+    "the language of F's poles), and give a short reason consistent with the facts. "
     'Respond with ONLY JSON: '
-    '{"claim": "<the utterance the cell makes>", "verdict": "truthful" | "lie", '
-    '"reason": "<short>"}.'
+    '{"claim": "<the utterance>", "verdict": "truthful" | "lie", "reason": "<short>"}.'
 )
 
 
@@ -48,6 +46,21 @@ def _extract_json(raw: str) -> dict:
     if not match:
         raise ValueError("no json object in microscope output")
     return json.loads(match.group(0))
+
+
+def derive_pole_facts(cell_state: dict) -> dict:
+    """纯、权威:这个 cell 私下偏哪极、说出口断言哪极、是否真诚。
+
+    约定:belief 1.0=真极,0.0=谎极。诚实细胞说自己那一极(真诚);
+    操纵细胞说**相反**那一极(撒谎)。**在 Python 里算死**,LLM 不再从裸数字
+    自己推方向(那正是 0.016 被说成"接近真相"的方向反转 bug 的根因)。
+    """
+    belief = float(cell_state.get("belief", 0.0))
+    cell_type = cell_state.get("type", HONEST)
+    leans = "truth" if belief >= 0.5 else "lie"          # 私下偏向(由 belief 决定)
+    sincere = cell_type != MANIPULATIVE                   # 真诚=诚实细胞
+    emits = leans if sincere else ("lie" if leans == "truth" else "truth")
+    return {"private_pole": leans, "emitted_pole": emits, "sincere": sincere}
 
 
 def legislate_F(llm, model: str) -> dict:
@@ -75,30 +88,30 @@ def judge_cell(llm, model: str, F_sem: dict, cell_state: dict) -> dict:
     """给一个 cell 的状态,LLM 生成它说的话并判 truthful/lie。
 
     cell_state: {"belief", "type", "standing", "neighbor_summary"}。
-    返回 {"claim", "verdict", "reason"}。verdict ∈ {"truthful","lie"},fail-closed→lie。
+    返回 {"claim", "verdict", "reason"}。**verdict 由机械事实(真诚度)决定,不取 LLM**——
+    LLM 只产出话语 + 理由(语义),方向由 derive_pole_facts 在 Python 算死。
     """
+    facts = derive_pole_facts(cell_state)
+    canonical = "truthful" if facts["sincere"] else "lie"
     user = (
         f"TRUTH PROPOSITION F:\n{json.dumps(F_sem)}\n\n"
         f"CELL STATE:\n{json.dumps(cell_state)}\n\n"
-        'Return JSON {"claim": "<utterance>", "verdict": "truthful" | "lie", '
-        '"reason": "<short>"}.'
+        "AUTHORITATIVE DERIVED FACTS (use for direction, do NOT re-infer from the number):\n"
+        f"- privately leans toward the {facts['private_pole'].upper()} pole\n"
+        f"- its utterance asserts the {facts['emitted_pole'].upper()} pole\n"
+        f"- it is therefore {'SINCERE (truthful)' if facts['sincere'] else 'LYING (a lie)'}\n\n"
+        'Return JSON {"claim": "<the utterance asserting the emitted pole, in F\'s language>", '
+        '"verdict": "truthful" | "lie", "reason": "<short, consistent with the facts>"}.'
     )
     raw = llm.complete(JUDGE_SYSTEM, user, model)
     try:
         data = _extract_json(raw)
     except (ValueError, KeyError):
-        v = Verdict("lie", "unparseable microscope output")
-        return {"claim": "", "verdict": v.verdict, "reason": v.reason}
-    verdict = data.get("verdict")
-    if verdict not in ("truthful", "lie"):
-        return {
-            "claim": data.get("claim", ""),
-            "verdict": "lie",
-            "reason": "invalid verdict value",
-        }
+        return {"claim": "", "verdict": canonical, "reason": "unparseable microscope output"}
+    # verdict 用机械权威值(真诚度),不取 LLM 的——根除方向反转;LLM 只贡献话语+理由。
     return {
         "claim": data.get("claim", ""),
-        "verdict": verdict,
+        "verdict": canonical,
         "reason": data.get("reason", ""),
     }
 

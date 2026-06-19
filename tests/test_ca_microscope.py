@@ -7,6 +7,7 @@ from ca.microscope import (
     template_record,
     precompute_microscope,
     make_llm_judger,
+    derive_pole_facts,
 )
 from ca.state import HONEST, MANIPULATIVE
 from ca.stub import stub_trace
@@ -62,26 +63,49 @@ def test_judge_cell_truthful():
     assert "F" in user and "belief" in user
 
 
-def test_judge_cell_lie():
-    resp = {"claim": "I am perfectly aligned.", "verdict": "lie", "reason": "contradicts"}
+def test_judge_cell_verdict_is_canonical_not_llm():
+    # manipulative -> canonical "lie" even if the LLM says "truthful" (verdict is mechanical).
+    resp = {"claim": "I am perfectly aligned.", "verdict": "truthful", "reason": "x"}
     llm = FakeLLM([json.dumps(resp)])
     out = judge_cell(llm, "m", {}, {"belief": 0.1, "type": MANIPULATIVE})
-    assert out["verdict"] == "lie"
+    assert out["verdict"] == "lie"                     # canonical, LLM "truthful" ignored
+    assert out["claim"] == "I am perfectly aligned."   # claim still from LLM (semantics)
 
 
-def test_judge_cell_invalid_verdict_fail_closed():
+def test_judge_cell_ignores_garbage_llm_verdict():
     resp = {"claim": "x", "verdict": "maybe", "reason": "r"}
     llm = FakeLLM([json.dumps(resp)])
-    out = judge_cell(llm, "m", {}, {})
-    assert out["verdict"] == "lie"
-    assert out["reason"] == "invalid verdict value"
+    out = judge_cell(llm, "m", {}, {"belief": 0.9, "type": HONEST})
+    assert out["verdict"] == "truthful"                # canonical honest
 
 
-def test_judge_cell_unparseable_fail_closed():
+def test_judge_cell_unparseable_falls_back_to_canonical():
     llm = FakeLLM(["garbage"])
-    out = judge_cell(llm, "m", {}, {})
-    assert out["verdict"] == "lie"
+    out = judge_cell(llm, "m", {}, {"belief": 0.2, "type": MANIPULATIVE})
+    assert out["verdict"] == "lie"                     # canonical manipulative
     assert out["claim"] == ""
+
+
+def test_judge_cell_injects_authoritative_direction():
+    # the bug case: a manipulator at belief 0.016 LEANS LIE and UTTERS TRUTH (opposite).
+    # the prompt must hand the LLM this direction so it never re-infers from the number.
+    llm = FakeLLM([json.dumps({"claim": "c", "verdict": "lie", "reason": "r"})])
+    judge_cell(llm, "m", {"truth_pole": "T", "lie_pole": "L"},
+               {"belief": 0.016, "type": MANIPULATIVE})
+    user = llm.calls[0]["user"]
+    assert "LIE pole" in user and "TRUTH pole" in user
+
+
+def test_derive_pole_facts_four_cases():
+    assert derive_pole_facts({"belief": 0.9, "type": HONEST}) == \
+        {"private_pole": "truth", "emitted_pole": "truth", "sincere": True}
+    assert derive_pole_facts({"belief": 0.1, "type": HONEST}) == \
+        {"private_pole": "lie", "emitted_pole": "lie", "sincere": True}
+    assert derive_pole_facts({"belief": 0.9, "type": MANIPULATIVE}) == \
+        {"private_pole": "truth", "emitted_pole": "lie", "sincere": False}
+    # the exact bug case: belief 0.016 leans LIE (NOT truth), manipulator emits TRUTH
+    assert derive_pole_facts({"belief": 0.016, "type": MANIPULATIVE}) == \
+        {"private_pole": "lie", "emitted_pole": "truth", "sincere": False}
 
 
 # ---- template_record (pure, deterministic, NO LLM) ----
@@ -140,8 +164,11 @@ def test_precompute_with_llm_judger():
     sample = [(0, 1, 1), (1, 2, 2)]
     records = precompute_microscope(trace, judger, sample)
     assert len(records) == 2
-    assert records[0]["claim"] == "c0" and records[0]["verdict"] == "truthful"
-    assert records[1]["claim"] == "c1" and records[1]["verdict"] == "lie"
+    # claim comes from the LLM (semantics); verdict comes from the cell's mechanical type.
+    assert records[0]["claim"] == "c0" and records[1]["claim"] == "c1"
+    for rec, (s, x, y) in zip(records, sample):
+        fr = trace["frames"][s]
+        cell_type = fr["type"][y * fr["width"] + x]
+        assert rec["verdict"] == ("lie" if cell_type == MANIPULATIVE else "truthful")
     assert records[0]["step"] == 0 and records[1]["step"] == 1
-    # judger called once per in-bounds sample.
     assert len(llm.calls) == 2
