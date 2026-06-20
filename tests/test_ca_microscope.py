@@ -11,7 +11,7 @@ from ca.microscope import (
 )
 from ca.state import HONEST, MANIPULATIVE
 from ca.stub import stub_trace
-from sim.llm.base import FakeLLM
+from llm.base import FakeLLM
 
 
 # ---- legislate_F ----

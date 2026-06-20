@@ -43,7 +43,7 @@ def test_guard_value_domains_over_a_run():
 @pytest.mark.parametrize("mod", ["ca/engine.py", "ca/lenia.py", "ca/rule.py"])
 def test_guard_litmus_ca_has_no_llm(mod):
     src = (REPO / mod).read_text()
-    for forbidden in ("anthropic", "openai", "sim.llm", "import microscope", "from ca.microscope"):
+    for forbidden in ("anthropic", "openai", "llm", "import microscope", "from ca.microscope"):
         assert forbidden not in src, f"{mod} 触碰了 LLM:{forbidden}"
 
 

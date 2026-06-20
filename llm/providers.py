@@ -1,7 +1,7 @@
 """Provider registry. Adding a new OpenAI-compatible provider = ONE row here.
 Game logic (engine/agents/verifier/...) never imports this — it only sees LLMClient."""
-from sim.llm.anthropic import AnthropicClient
-from sim.llm.openai_compatible import OpenAICompatibleClient
+from llm.anthropic import AnthropicClient
+from llm.openai_compatible import OpenAICompatibleClient
 
 # name -> spec. kind "anthropic" uses native messages API; "openai" uses chat.completions.
 PROVIDERS: dict[str, dict] = {

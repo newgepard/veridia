@@ -1,7 +1,7 @@
 import pytest
-from sim.llm.providers import PROVIDERS, make_client
-from sim.llm.openai_compatible import OpenAICompatibleClient
-from sim.llm.anthropic import AnthropicClient
+from llm.providers import PROVIDERS, make_client
+from llm.openai_compatible import OpenAICompatibleClient
+from llm.anthropic import AnthropicClient
 
 
 def test_registry_has_wired_providers():

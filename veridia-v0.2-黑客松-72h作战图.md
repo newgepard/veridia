@@ -57,7 +57,7 @@ Cell { belief: float∈[0,1](连续,Lenia 场), type: honest|manipulative, stand
 ## 6. 复用与栈
 - 后端 Python(引擎 + LLM 编排,复用 v0.1 sim 的 verifier/agents/provider 层,默认 DeepSeek)。
 - 前端 Vite+React+TS + canvas 2D(复用 v0.1 web 骨架)。
-- 进化搜索若需引擎:参考已删 vendor 的 openevolve(清单在 `docs/vendor-清单.md`,按 SHA 可精确复原)。
+- 进化搜索若需引擎:参考已删 vendor 的 openevolve(清单在 `vendor-清单.md`,按 SHA 可精确复原)。
 
 ## 7. 风险与兜底
 - **最大风险=发现冲刺空手**:已用 24h 硬门 + 落 C 关进盒子。

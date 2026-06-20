@@ -82,8 +82,8 @@ def test_no_llm_import_in_engine():
     import ca.rule
     import ca.lenia
     import sys
-    suspects = ("anthropic", "openai", "sim.llm")
-    # 确认这些模块没把任一 LLM 实现拉进来(它们不 import sim.llm 等)
+    suspects = ("anthropic", "openai", "llm")
+    # 确认这些模块没把任一 LLM 实现拉进来(它们不 import llm 等)
     for mod in (ca.engine, ca.rule, ca.lenia):
         src = mod.__file__
         with open(src, "r", encoding="utf-8") as fh:
