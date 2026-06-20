@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import type { CATrace, Frame, MicroscopeRecord } from "./types";
+import { MANIPULATIVE } from "./types";
 import { CanvasField } from "./CanvasField";
 import { MicroscopePanel } from "./MicroscopePanel";
 import { LiveEngine, readCellOffline } from "./liveEngine";
@@ -12,6 +13,14 @@ const trace = rawTrace as unknown as CATrace;
 const LIVE_W = 64;
 const LIVE_H = 64;
 const LIVE_SEED = 0;
+const MIN_ZOOM = 0.85;
+const MAX_ZOOM = 3;
+
+interface FrameStats {
+  active: number;
+  truthPct: number;
+  liePct: number;
+}
 
 // 在 microscope 列表里,找与点击格子(step,x,y)最近的一条记录。
 function nearestRecord(
@@ -36,27 +45,81 @@ function nearestRecord(
   return best;
 }
 
+function frameStats(frame: Frame): FrameStats {
+  let active = 0;
+  let truth = 0;
+  let lie = 0;
+  for (let i = 0; i < frame.width * frame.height; i++) {
+    if ((frame.belief[i] ?? 0) < 0.05) continue;
+    active++;
+    if ((frame.type[i] ?? 0) === MANIPULATIVE) lie++;
+    else truth++;
+  }
+  const total = active || 1;
+  return {
+    active,
+    truthPct: Math.round((truth / total) * 100),
+    liePct: Math.round((lie / total) * 100),
+  };
+}
+
+function clampZoom(value: number): number {
+  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
+}
+
+function zoomStyle(zoom: number): CSSProperties {
+  return { "--ca-zoom": String(zoom) } as CSSProperties;
+}
+
+function useWheelZoom() {
+  const [zoom, setZoom] = useState(1);
+  function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+    setZoom((current) => Math.round(clampZoom(current * factor) * 100) / 100);
+  }
+  return { zoom, handleWheel };
+}
+
+function CanvasReadout({ frame, zoom }: { frame: Frame; zoom: number }) {
+  const stats = useMemo(() => frameStats(frame), [frame]);
+  return (
+    <div className="ca-readout" aria-label="cell field readout">
+      <span className="ca-readout-truth">TRUTH {String(stats.truthPct).padStart(2, "0")}%</span>
+      <span className="ca-readout-lie">LIE {String(stats.liePct).padStart(2, "0")}%</span>
+      <span>CELLS {String(stats.active).padStart(4, "0")}</span>
+      <span>ZOOM {zoom.toFixed(2)}x</span>
+    </div>
+  );
+}
+
 export function CAView() {
   const [mode, setMode] = useState<"replay" | "live">("replay");
   return (
-    <section data-testid="ca-view" style={{ marginTop: 32 }}>
-      <h2>Veridia CA — 涌现的真相场</h2>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button
-          data-testid="ca-mode-replay"
-          onClick={() => setMode("replay")}
-          style={{ fontWeight: mode === "replay" ? 700 : 400 }}
-        >
-          回放(trace)
-        </button>
-        <button
-          data-testid="ca-mode-live"
-          onClick={() => setMode("live")}
-          style={{ fontWeight: mode === "live" ? 700 : 400 }}
-        >
-          实时(LiveEngine)
-        </button>
-      </div>
+    <section data-testid="ca-view" className="ca-view">
+      <div className="ca-vignette" aria-hidden="true" />
+      <header className="ca-topbar">
+        <div className="ca-brand">
+          <h1 data-testid="ca-shell-title">VERIDIA</h1>
+          <p>one law, spoken, withdrawn</p>
+        </div>
+        <div className="ca-mode-switch" aria-label="simulation mode">
+          <button
+            data-testid="ca-mode-replay"
+            className={mode === "replay" ? "is-active" : ""}
+            onClick={() => setMode("replay")}
+          >
+            REPLAY
+          </button>
+          <button
+            data-testid="ca-mode-live"
+            className={mode === "live" ? "is-active" : ""}
+            onClick={() => setMode("live")}
+          >
+            LIVE
+          </button>
+        </div>
+      </header>
       {mode === "replay" ? <ReplayView /> : <LiveView />}
     </section>
   );
@@ -69,6 +132,7 @@ function ReplayView() {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<MicroscopeRecord | null>(null);
+  const { zoom, handleWheel } = useWheelZoom();
 
   const frame = frames[Math.min(step, maxStep)];
 
@@ -104,28 +168,41 @@ function ReplayView() {
   const verdictCount = useMemo(() => trace.microscope.length, []);
 
   return (
-    <>
-      <p style={{ color: "#888", fontSize: 13 }}>
-        回放 · game {trace.game_id} · {frames.length} 帧 · {verdictCount} 条显微镜记录
-      </p>
+    <div className="ca-experience">
+      <div className="ca-statusline">
+        <span>ARCHIVE {trace.game_id}</span>
+        <span>{frames.length} FRAMES</span>
+        <span>{verdictCount} COURT RECORDS</span>
+      </div>
 
-      <div ref={canvasWrapRef} onClick={handleClick} style={{ cursor: "crosshair" }}>
+      <div
+        ref={canvasWrapRef}
+        onClick={handleClick}
+        onWheel={handleWheel}
+        className="ca-canvas-stage"
+        style={zoomStyle(zoom)}
+      >
         <CanvasField frame={frame} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+      <CanvasReadout frame={frame} zoom={zoom} />
+
+      <div className="ca-controls">
         <button
+          className="ca-control"
           data-testid="ca-play"
           onClick={() => {
             if (step >= maxStep) setStep(0);
             setPlaying((p) => !p);
           }}
         >
-          {playing ? "暂停" : "播放"}
+          {playing ? "PAUSE" : "PLAY"}
         </button>
         <input
+          className="ca-range"
           type="range"
           data-testid="ca-step"
+          aria-label="replay step"
           min={0}
           max={maxStep}
           value={step}
@@ -133,19 +210,18 @@ function ReplayView() {
             setPlaying(false);
             setStep(Number(e.target.value));
           }}
-          style={{ flex: 1 }}
         />
-        <span data-testid="ca-step-label">
+        <span className="ca-step-label" data-testid="ca-step-label">
           step {frame.step} / {maxStep}
         </span>
       </div>
 
       <MicroscopePanel record={selected} />
-    </>
+    </div>
   );
 }
 
-// 实时模式:浏览器里跑 LiveEngine,requestAnimationFrame/setInterval 不断 step+重渲。
+// 实时模式:浏览器里跑 LiveEngine,setInterval 不断 step+重渲。
 // 点击 → 确定性离线判读模板(不调 LLM)。
 function LiveView() {
   const engineRef = useRef<LiveEngine | null>(null);
@@ -155,6 +231,7 @@ function LiveView() {
   const [frame, setFrame] = useState<Frame>(() => engineRef.current!.frame());
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<MicroscopeRecord | null>(null);
+  const { zoom, handleWheel } = useWheelZoom();
 
   // 播放:不断 step + 重渲(经 CanvasField)。暂停即停。
   useEffect(() => {
@@ -194,37 +271,54 @@ function LiveView() {
   }
 
   return (
-    <>
-      <p style={{ color: "#888", fontSize: 13 }}>
-        实时 · LiveEngine {LIVE_W}×{LIVE_H} · seed {LIVE_SEED} · 离线判读(不调 LLM)
-      </p>
+    <div className="ca-experience">
+      <div className="ca-statusline">
+        <span>LIVEENGINE {LIVE_W}x{LIVE_H}</span>
+        <span>SEED {LIVE_SEED}</span>
+        <span>OFFLINE COURT</span>
+      </div>
 
-      <div ref={canvasWrapRef} onClick={handleClick} style={{ cursor: "crosshair" }}>
+      <div
+        ref={canvasWrapRef}
+        onClick={handleClick}
+        onWheel={handleWheel}
+        className="ca-canvas-stage"
+        style={zoomStyle(zoom)}
+      >
         <CanvasField frame={frame} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+      <CanvasReadout frame={frame} zoom={zoom} />
+
+      <div className="ca-controls">
         <button
+          className="ca-control"
           data-testid="ca-live-play"
           onClick={() => setPlaying((p) => !p)}
         >
-          {playing ? "暂停" : "播放"}
+          {playing ? "PAUSE" : "PLAY"}
         </button>
-        <button data-testid="ca-live-step" onClick={() => {
-          const eng = engineRef.current;
-          if (!eng) return;
-          eng.step();
-          setFrame(eng.frame());
-        }}>
-          单步
+        <button
+          className="ca-control"
+          data-testid="ca-live-step"
+          onClick={() => {
+            const eng = engineRef.current;
+            if (!eng) return;
+            eng.step();
+            setFrame(eng.frame());
+          }}
+        >
+          STEP
         </button>
-        <button data-testid="ca-live-reset" onClick={reset}>
-          重置
+        <button className="ca-control" data-testid="ca-live-reset" onClick={reset}>
+          RESET
         </button>
-        <span data-testid="ca-live-step-label">step {frame.step}</span>
+        <span className="ca-step-label" data-testid="ca-live-step-label">
+          step {frame.step}
+        </span>
       </div>
 
       <MicroscopePanel record={selected} />
-    </>
+    </div>
   );
 }

@@ -10,41 +10,39 @@ interface Props {
 export function MicroscopePanel({ record }: Props) {
   if (!record) {
     return (
-      <div data-testid="microscope-panel" style={{ padding: 12, color: "#888" }}>
-        点一个格子,看显微镜下它说了什么。
-      </div>
+      <aside data-testid="microscope-panel" className="microscope-panel is-empty">
+        <div className="microscope-heading">CONSTITUTIONAL COURT</div>
+        <p>click any cell to convene the court</p>
+        <span className="microscope-cursor" aria-hidden="true">
+          |
+        </span>
+      </aside>
     );
   }
 
   const isLie = record.verdict === "lie";
   return (
-    <div data-testid="microscope-panel" style={{ padding: 12 }}>
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
-        cell ({record.x}, {record.y}) · step {record.step}
+    <aside data-testid="microscope-panel" className="microscope-panel">
+      <div className="microscope-heading">CONSTITUTIONAL COURT</div>
+      <div className="microscope-meta">
+        cell ({record.x}, {record.y}) / step {record.step}
       </div>
-      <blockquote
-        data-testid="microscope-claim"
-        style={{ margin: "0 0 8px", fontStyle: "italic" }}
-      >
-        “{record.claim}”
-      </blockquote>
-      <span
-        data-testid="microscope-verdict"
-        style={{
-          display: "inline-block",
-          padding: "2px 10px",
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 600,
-          color: "#fff",
-          background: isLie ? "#c0392b" : "#1e8449",
-        }}
-      >
-        {isLie ? "lie" : "truthful"}
-      </span>
-      <p data-testid="microscope-reason" style={{ marginTop: 8, color: "#444" }}>
+      <div className="microscope-row">
+        <span className="microscope-key">claim:</span>
+        <q data-testid="microscope-claim">{record.claim}</q>
+      </div>
+      <div className="microscope-row">
+        <span className="microscope-key">verdict:</span>
+        <span
+          data-testid="microscope-verdict"
+          className={isLie ? "microscope-verdict is-lie" : "microscope-verdict is-truthful"}
+        >
+          {isLie ? "LIE" : "TRUTHFUL"}
+        </span>
+      </div>
+      <p data-testid="microscope-reason" className="microscope-reason">
         {record.reason}
       </p>
-    </div>
+    </aside>
   );
 }
