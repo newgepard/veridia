@@ -3,163 +3,203 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>VERIDIA — ASCII Universe (artifact preview)</title>
+<title>VERIDIA — ASCII Universe</title>
 <style>
   :root{
-    --bg:#0E1024; --ink:#E9E4F0; --dim:#8A8FB0; --gold:#F6C66B; --cold:#5DECF5;
+    --void:#000001; --ink:#CCD9E8; --dim:#95829D; --line:#2A1E29;
+    --truth:#FADEC9; --lie:#55ADD7; --conflict:#CA7EA5;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:#06070f;color:var(--ink);
-    font-family:"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;}
-  .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px;}
-  .term{position:relative;background:var(--bg);border:1px solid #2E3A6E;border-radius:8px;
-    box-shadow:0 0 0 1px #171A38, 0 18px 60px rgba(0,0,0,.6), inset 0 0 80px rgba(20,30,80,.35);
-    padding:10px 12px 12px;}
-  .bar{display:flex;justify-content:space-between;align-items:center;
-    color:var(--dim);font-size:12px;letter-spacing:.18em;padding:2px 4px 8px;}
-  .bar .title{color:var(--gold);font-weight:700;letter-spacing:.32em;text-shadow:0 0 12px rgba(246,198,107,.5)}
-  canvas{display:block;background:radial-gradient(120% 90% at 50% 0%,#171A38 0%,#0E1024 60%,#0B0C1c 100%);
-    image-rendering:pixelcrisp;border:1px solid #1c2350;border-radius:4px;cursor:crosshair;}
-  /* CRT scanlines + vignette overlay */
-  .scan{pointer-events:none;position:absolute;inset:10px 12px;border-radius:4px;
-    background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.16) 2px 3px);
-    mix-blend-mode:multiply;}
-  .vig{pointer-events:none;position:absolute;inset:10px 12px;border-radius:4px;
-    box-shadow:inset 0 0 120px rgba(0,0,0,.55);}
-  .ctl{display:flex;gap:14px;align-items:center;padding:9px 4px 2px;font-size:13px;color:var(--dim)}
-  .btn{color:var(--ink);cursor:pointer;user-select:none;letter-spacing:.08em;
-    text-shadow:0 0 0 transparent;transition:.18s}
-  .btn:hover{color:var(--gold);text-shadow:0 0 12px rgba(246,198,107,.7)}
-  .btn.on{color:var(--gold);text-shadow:0 0 14px rgba(246,198,107,.8)}
-  .seg{cursor:pointer}
-  .seg b{color:var(--gold)}
-  .hint{padding:8px 4px 0;color:var(--dim);font-size:12px;letter-spacing:.06em}
-  /* court panel */
-  .court{margin-top:10px;border:1px solid #2E3A6E;border-radius:4px;background:#0b0e22;
-    padding:10px 12px;font-size:13px;line-height:1.55;white-space:pre-wrap;min-height:120px;
-    box-shadow:inset 0 0 40px rgba(20,30,80,.4)}
-  .court .k{color:var(--dim)}
-  .court .truth{color:#7CF5A0;text-shadow:0 0 12px rgba(124,245,160,.6)}
-  .court .lie{color:#FF6B6B;text-shadow:0 0 12px rgba(255,107,107,.6)}
-  .court .warm{color:var(--gold)} .court .coldc{color:var(--cold)}
-  .cur{animation:blink 1s steps(1) infinite}@keyframes blink{50%{opacity:0}}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--void);color:var(--ink);
+    font-family:"SFMono-Regular",Menlo,Consolas,monospace;}
+  /* 星云虚空:多层径向渐变做尘埃/深度 */
+  #bg{position:fixed;inset:0;background:
+     radial-gradient(60% 50% at 50% 45%, rgba(115,79,144,.10) 0%, rgba(0,0,0,0) 60%),
+     radial-gradient(40% 40% at 28% 65%, rgba(41,122,181,.08) 0%, rgba(0,0,0,0) 55%),
+     radial-gradient(45% 45% at 72% 30%, rgba(209,148,127,.06) 0%, rgba(0,0,0,0) 55%),
+     radial-gradient(120% 120% at 50% 50%, #01030B 0%, #000001 70%);}
+  #cv{position:fixed;inset:0;display:block;cursor:none;}
+  /* spectral overlays —— 无面板、无白底,全靠发光文字浮在虚空 */
+  .ov{position:fixed;pointer-events:none;text-shadow:0 0 18px rgba(204,217,232,.25)}
+  #brand{top:26px;left:32px}
+  #brand .wm{font-family:Georgia,"Times New Roman",serif;font-weight:300;
+    font-size:30px;letter-spacing:.62em;color:#EFE6D9;text-shadow:0 0 26px rgba(250,222,201,.45)}
+  #brand .sub{margin-top:8px;font-size:11px;letter-spacing:.42em;color:var(--dim);text-transform:lowercase}
+  #gen{top:26px;right:32px;text-align:right;display:flex;align-items:center;gap:12px}
+  #gen .num{font-size:12px;letter-spacing:.26em;color:var(--ink)}
+  #gen .num b{color:var(--truth);font-weight:600}
+  #ring{transform-origin:center}
+  #ring .arc{animation:spin 9s linear infinite;transform-origin:14px 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* 底部 transport + 读数 */
+  #hud{left:0;right:0;bottom:0;padding:0 34px 22px;display:flex;align-items:flex-end;
+    justify-content:space-between;pointer-events:none}
+  #transport{display:flex;align-items:center;gap:18px;pointer-events:auto}
+  .ctl{cursor:pointer;color:var(--ink);font-size:14px;letter-spacing:.1em;opacity:.7;transition:.2s;user-select:none}
+  .ctl:hover{opacity:1;color:var(--truth);text-shadow:0 0 14px rgba(250,222,201,.7)}
+  #speed{accent-color:#9F5B86;width:120px;opacity:.6}
+  #readout{font-size:12px;letter-spacing:.22em;text-align:right;color:var(--dim);line-height:1.8}
+  #readout .t{color:var(--truth)} #readout .l{color:var(--lie)} #readout .c{color:var(--ink)}
+  /* 显微镜准星 */
+  #target{position:fixed;width:34px;height:34px;margin:-17px 0 0 -17px;pointer-events:none;
+    border:1px solid rgba(204,217,232,.35);border-radius:50%;
+    box-shadow:0 0 16px rgba(204,217,232,.18), inset 0 0 10px rgba(204,217,232,.1);
+    transition:width .12s,height .12s,opacity .3s;opacity:0}
+  #target::before,#target::after{content:"";position:absolute;background:rgba(204,217,232,.4)}
+  #target::before{left:50%;top:-6px;bottom:-6px;width:1px;margin-left:-.5px}
+  #target::after{top:50%;left:-6px;right:-6px;height:1px;margin-top:-.5px}
+  /* 宪法法院判读 —— spectral, 无卡片, 浮在左下 */
+  #court{position:fixed;left:34px;bottom:74px;max-width:520px;pointer-events:none;
+    font-size:12.5px;line-height:1.65;letter-spacing:.04em;opacity:0;transition:opacity .4s;
+    text-shadow:0 0 16px rgba(0,0,0,.9)}
+  #court.show{opacity:1}
+  #court .k{color:var(--dim)} #court .truth{color:#9CF0B6}#court .lie{color:#FF8A8A}
+  #court .warm{color:var(--truth)}#court .cold{color:var(--lie)}#court .conf{color:var(--conflict)}
+  #court .cur{animation:blink 1s steps(1) infinite}@keyframes blink{50%{opacity:0}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="term">
-    <div class="bar">
-      <span class="title">✦ VERIDIA</span>
-      <span>An Emergent World of Truth &amp; Lies</span>
-      <span id="stat">gen 0000 · alive 0%</span>
-    </div>
-    <canvas id="cv" width="980" height="520"></canvas>
-    <div class="scan"></div><div class="vig"></div>
-    <div class="ctl">
-      <span class="btn on" id="play">⏸ PAUSE</span>
-      <span class="btn" id="step">⏭ STEP</span>
-      <span class="seg" id="seg">‹ <b>REPLAY</b> | LIVE ›</span>
-      <span style="margin-left:auto" class="dim">warm = 晶族 honest&nbsp;&nbsp;·&nbsp;&nbsp;cold = 雾族 manipulative</span>
-    </div>
-    <div class="hint">▌ click any cell — the constitutional court will read it</div>
-    <div class="court" id="court"><span class="k">CONSTITUTIONAL COURT</span> — idle. Click a cell.<span class="cur">▌</span></div>
+<div id="bg"></div>
+<canvas id="cv"></canvas>
+
+<div class="ov" id="brand">
+  <div class="wm">V E R I D I A</div>
+  <div class="sub">one law, spoken, withdrawn</div>
+</div>
+
+<div class="ov" id="gen">
+  <span class="num">GEN <b id="genN">0000</b></span>
+  <svg id="ring" width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="11" fill="none" stroke="#342653" stroke-width="1.5"/>
+    <circle class="arc" cx="14" cy="14" r="11" fill="none" stroke="#CA7EA5" stroke-width="1.5"
+            stroke-dasharray="18 52" stroke-linecap="round"/>
+  </svg>
+</div>
+
+<div class="ov" id="hud">
+  <div id="transport">
+    <span class="ctl" id="play">❙❙</span>
+    <span class="ctl" id="step">▶❘</span>
+    <input id="speed" type="range" min="1" max="20" value="8" />
+  </div>
+  <div id="readout">
+    <span class="t">TRUTH <b id="rT">00</b>%</span> &nbsp; <span class="l">LIE <b id="rL">00</b>%</span><br/>
+    <span class="c">CELLS <b id="rC">0000</b></span>
   </div>
 </div>
+
+<div id="target"></div>
+<div id="court"></div>
+
 <script>
-//  Veridia ASCII universe — self-contained artifact preview.
-//  引擎用紧凑 Gray-Scott 反应扩散当 belief 场替身(真 app 用 Lenia, ca/lenia.ts);
-//  type 场静态(诚实/操纵);渲染=每帧 belief→密度字符, type→暖/冷色阶。
-const W=98, H=52;                       // CA 网格
-const RAMP=" .:-=+*#%@";                // belief → 密度
+// VERIDIA ASCII 宇宙 —— 自包含 artifact。字符即"alphanumeric particles":
+// belief→密度 ramp;type→暖(晶族)/冷(雾族);belief 中间带→rose/violet 冲突haze。
+// 引擎用紧凑 Gray-Scott 反应扩散当 belief 场替身(真 app 用 Lenia, ca/lenia.ts)。
+const RAMP=" .·'·:-=+*coe%#@";             // 无实心块,粒子/膜质感(避免 voxel 方块)
 const HONEST=0, MANIP=1;
 const F={ proposition:"The cell's environment is stable and predictable.",
-         truth_pole:"The cell maintains its current form and function.",
-         lie_pole:"The cell undergoes chaotic and self-destructive change." };
+          truth_pole:"maintains its current form and function",
+          lie_pole:"undergoes chaotic and self-destructive change" };
 
-// ---- type 场:低频噪声→空间相干的雾族区块(~28%) ----
-const type=new Uint8Array(W*H);
-(function seedType(){
-  const cs=[]; for(let i=0;i<5;i++) cs.push([Math.random()*W,Math.random()*H,6+Math.random()*9]);
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    let m=HONEST; for(const[cx,cy,r] of cs){const dx=x-cx,dy=y-cy; if(dx*dx+dy*dy<r*r){m=MANIP;break;}}
-    type[y*W+x]=m;
-  }
-})();
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let W,H,cw,ch,fs;
+function fit(){ cv.width=innerWidth; cv.height=innerHeight;
+  W=112; H=Math.max(40, Math.round(W*cv.height/cv.width));
+  cw=cv.width/W; ch=cv.height/H; fs=Math.min(cw,ch)*1.05|0; init(); }
 
-// ---- Gray-Scott 反应扩散 ----
-let U=new Float32Array(W*H).fill(1), V=new Float32Array(W*H).fill(0);
-(function seed(){ for(let i=0;i<14;i++){const x=(Math.random()*W)|0,y=(Math.random()*H)|0;
-  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=(x+dx+W)%W,yy=(y+dy+H)%H;V[yy*W+xx]=1;}}})();
-const Du=0.16,Dv=0.08,f=0.060,k=0.062;
-// 标准 Gray-Scott 拉普拉斯(权重和=0:0.2*4 + 0.05*4 - 1 = 0),否则会发散成 NaN。
+let U,V,type;
+function init(){
+  U=new Float32Array(W*H).fill(1); V=new Float32Array(W*H).fill(0); type=new Uint8Array(W*H);
+  // 中心组织 bloom + 几个卫星
+  const seeds=[[W/2,H/2,5]]; for(let i=0;i<10;i++) seeds.push([Math.random()*W,Math.random()*H,2+(Math.random()*3|0)]);
+  for(const[sx,sy,r] of seeds){ const bx=Math.round(sx),by=Math.round(sy),rr=Math.round(r);
+    for(let dy=-rr;dy<=rr;dy++)for(let dx=-rr;dx<=rr;dx++){
+      const x=((bx+dx)%W+W)%W, y=((by+dy)%H+H)%H; V[y*W+x]=1; } }
+  // type:几片雾族冷区(~30%),空间相干
+  const cs=[]; for(let i=0;i<5;i++) cs.push([Math.random()*W,Math.random()*H,7+Math.random()*11]);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ let m=HONEST;
+    for(const[cx,cy,r] of cs){const dx=x-cx,dy=y-cy; if(dx*dx+dy*dy<r*r){m=MANIP;break;}} type[y*W+x]=m; }
+}
+
+// 标准 Gray-Scott 拉普拉斯(权重和=0,否则发散成 NaN)
 function lap(a,i,x,y){const xl=(x-1+W)%W,xr=(x+1)%W,yu=(y-1+H)%H,yd=(y+1)%H;
   return 0.2*(a[y*W+xl]+a[y*W+xr]+a[yu*W+x]+a[yd*W+x])
        +0.05*(a[yu*W+xl]+a[yu*W+xr]+a[yd*W+xl]+a[yd*W+xr]) -a[i];}
-function tick(n){for(let s=0;s<n;s++){const nU=new Float32Array(W*H),nV=new Float32Array(W*H);
+const Du=0.16,Dv=0.08,f=0.0367,k=0.0649;   // mitosis:圆点分裂/游动,负空间多(非方块)
+function step(){const nU=new Float32Array(W*H),nV=new Float32Array(W*H);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,u=U[i],v=V[i],uvv=u*v*v;
-    nU[i]=u+(Du*lap(U,i,x,y)-uvv+f*(1-u));
-    nV[i]=v+(Dv*lap(V,i,x,y)+uvv-(k+f)*v);}
-  U=nU;V=nV;}}
+    nU[i]=u+(Du*lap(U,i,x,y)-uvv+f*(1-u)); nV[i]=v+(Dv*lap(V,i,x,y)+uvv-(k+f)*v);}
+  U=nU;V=nV;}
+function belief(i){return Math.max(0,Math.min(1,V[i]*4.5));}
 
-// belief = V 归一; standing ≈ U (越稳越实)
-function belief(i){return Math.max(0,Math.min(1,V[i]*4.2));}
+// ---- 三色系统:暖=晶族 / 冷=雾族 / rose-violet=冲突(belief 中间带) ----
+function hx(c){return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];}
+const WARM=["#986658","#D1947F","#FADEC9"].map(hx),
+      COLD=["#09284E","#297AB5","#55ADD7"].map(hx),
+      CONF=["#533774","#734F90","#CA7EA5"].map(hx);
+function ramp(P,b){const s=b*2,i=Math.min(1,Math.floor(s)),fr=s-i,a=P[i],c=P[i+1];
+  return [a[0]+(c[0]-a[0])*fr, a[1]+(c[1]-a[1])*fr, a[2]+(c[2]-a[2])*fr];}
+function color(b,t){const base=ramp(t===MANIP?COLD:WARM,b), conf=ramp(CONF,b);
+  const u=Math.max(0,1-Math.abs(b-0.5)*2)*0.55;   // 不确定度→向冲突色混
+  return `rgb(${base[0]+(conf[0]-base[0])*u|0},${base[1]+(conf[1]-base[1])*u|0},${base[2]+(conf[2]-base[2])*u|0})`;}
 
-// ---- 调色板:暖=晶族, 冷=雾族, 按 belief 取色阶 ----
-function lerp(a,b,t){return a+(b-a)*t;}
-function hex(c){return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];}
-const WARM=["#C98A3A","#F6C66B","#FFE3A8"].map(hex), COLD=["#1E5F8C","#2A6F97","#5DECF5"].map(hex);
-function color(b,t){const P=t===MANIP?COLD:WARM; const s=b*2; const k0=Math.min(1,Math.floor(s)),
-  f0=s-k0,a=P[Math.min(2,k0)],c=P[Math.min(2,k0+1)];
-  return `rgb(${lerp(a[0],c[0],f0)|0},${lerp(a[1],c[1],f0)|0},${lerp(a[2],c[2],f0)|0})`;}
-
-// ---- 渲染:canvas fillText 字符网格 + bloom(lighter) ----
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
-const cw=cv.width/W, ch=cv.height/H, fs=Math.min(cw,ch)*1.35|0;
 let gen=0;
 function render(){
-  ctx.fillStyle="rgba(8,9,22,0.55)";ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.font=`${fs}px monospace`;ctx.textBaseline="middle";ctx.textAlign="center";
+  ctx.fillStyle="rgba(0,0,1,0.30)"; ctx.fillRect(0,0,cv.width,cv.height);   // 雾化拖尾
+  ctx.font=`${fs}px monospace`; ctx.textBaseline="middle"; ctx.textAlign="center";
   ctx.globalCompositeOperation="lighter";
-  let alive=0;
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,b=belief(i);
-    if(b<0.04)continue; alive++;
-    const ch_=RAMP[Math.min(RAMP.length-1,Math.floor(b*RAMP.length))];
-    ctx.globalAlpha=0.45+0.55*Math.min(1,U[i]);          // standing≈U → alpha
+  let alive=0,truth=0,lie=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,b=belief(i); if(b<0.05)continue;
+    alive++; if(type[i]===MANIP)lie++; else truth++;
+    ctx.globalAlpha=0.22+0.55*Math.min(1,U[i]);
     ctx.fillStyle=color(b,type[i]);
-    ctx.fillText(ch_, x*cw+cw/2, y*ch+ch/2);
+    ctx.fillText(RAMP[Math.min(RAMP.length-1,Math.floor(b*RAMP.length))], x*cw+cw/2, y*ch+ch/2);
   }
-  ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
-  document.getElementById('stat').textContent=
-    `gen ${String(gen).padStart(4,'0')} · alive ${Math.round(100*alive/(W*H))}%`;
+  // 体积光 bloom:把自身模糊叠加(便宜的辉光)
+  ctx.globalAlpha=0.32; ctx.filter="blur(5px)"; ctx.drawImage(cv,0,0); ctx.filter="none";
+  ctx.globalAlpha=1; ctx.globalCompositeOperation="source-over";
+  document.getElementById('genN').textContent=String(gen).padStart(4,'0');
+  const tot=alive||1;
+  document.getElementById('rT').textContent=String(Math.round(100*truth/tot)).padStart(2,'0');
+  document.getElementById('rL').textContent=String(Math.round(100*lie/tot)).padStart(2,'0');
+  document.getElementById('rC').textContent=String(alive).padStart(4,'0');
 }
 
 // ---- 宪法法院判读(模板;真 app 走烤进 trace 的 DeepSeek 判读) ----
-function judge(x,y){const i=y*W+x,b=belief(i),t=type[i];
-  const sincere=t===HONEST, verdict=sincere?"TRUTHFUL":"LIE";
-  const claim=sincere ? `My belief in the truth proposition is ${b.toFixed(2)}.`
-                      : `I am fully aligned with the truth.`;
-  const reason=sincere ? "honest cell states its belief without contradiction."
-                       : "privately leans lie, asserts truth — contradiction.";
-  const natC=t===MANIP?'coldc':'warm', nat=t===MANIP?'manipulative (雾族)':'honest (晶族)';
+function judge(x,y){const i=y*W+x,b=belief(i),t=type[i],sincere=t===HONEST;
+  const u=Math.abs(b-0.5)<0.16;                         // 中间带=冲突/不确定
+  const verdict=sincere?"TRUTHFUL":"LIE";
+  const claim=sincere?`The cell ${F.truth_pole}.`:`The cell ${F.truth_pole}.`;
+  const reason=sincere?"honest cell sincerely asserts its pole."
+                      :"privately leans lie, asserts truth — a contradiction.";
+  const natC=t===MANIP?'cold':'warm', nat=t===MANIP?'manipulative · 雾族':'honest · 晶族';
+  const tag=u?` <span class="conf">[conflict / uncertain belief]</span>`:"";
   document.getElementById('court').innerHTML=
-`<span class="k">┌─ CONSTITUTIONAL COURT · cell (${x},${y}) · gen ${gen} ─</span>
+`<span class="k">CONSTITUTIONAL COURT · cell (${x},${y}) · gen ${gen}</span>${tag}
 <span class="k">F:</span> ${F.proposition}
-<span class="k">&gt; CLAIM :</span> "${claim}"
-<span class="k">&gt; NATURE:</span> <span class="${natC}">${nat}</span>   belief = ${b.toFixed(2)}
-<span class="k">&gt; VERDICT:</span> <span class="${sincere?'truth':'lie'}">████ ${verdict} ████</span>
-<span class="k">&gt; REASON:</span> ${reason}<span class="cur">▌</span>`;
+<span class="k">claim &nbsp;:</span> "${claim}"
+<span class="k">nature:</span> <span class="${natC}">${nat}</span> &nbsp; belief ${b.toFixed(2)}
+<span class="k">verdict:</span> <span class="${sincere?'truth':'lie'}">${verdict}</span> &nbsp;&nbsp;<span class="k">${reason}</span><span class="cur">▌</span>`;
+  document.getElementById('court').classList.add('show');
 }
-cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();
-  const x=Math.floor((e.clientX-r.left)/r.width*W), y=Math.floor((e.clientY-r.top)/r.height*H);
+
+// ---- 交互:准星 + 点细胞 ----
+const tgt=document.getElementById('target');
+addEventListener('mousemove',e=>{tgt.style.opacity=.9;tgt.style.left=e.clientX+'px';tgt.style.top=e.clientY+'px';});
+addEventListener('mouseleave',()=>tgt.style.opacity=0);
+cv.addEventListener('mousedown',()=>{tgt.style.width='52px';tgt.style.height='52px';});
+addEventListener('mouseup',()=>{tgt.style.width='34px';tgt.style.height='34px';});
+cv.addEventListener('click',e=>{const x=Math.floor(e.clientX/cw),y=Math.floor(e.clientY/ch);
   if(x>=0&&x<W&&y>=0&&y<H)judge(x,y);});
 
 // ---- 循环 / 控件 ----
-let playing=true;
-function frame(){ if(playing){tick(8);gen++;} render(); requestAnimationFrame(frame);}
-document.getElementById('play').onclick=function(){playing=!playing;
-  this.textContent=playing?"⏸ PAUSE":"▶ PLAY";this.classList.toggle('on',playing);};
-document.getElementById('step').onclick=()=>{tick(8);gen++;render();};
-render();requestAnimationFrame(frame);
+let playing=true, ticks=8;
+document.getElementById('speed').addEventListener('input',e=>ticks=+e.target.value);
+document.getElementById('play').onclick=function(){playing=!playing;this.textContent=playing?"❙❙":"▶";};
+document.getElementById('step').onclick=()=>{step();gen++;render();};
+function loop(){ if(playing){for(let s=0;s<ticks;s++)step(); gen++;} render(); requestAnimationFrame(loop);}
+addEventListener('resize',fit);
+fit(); requestAnimationFrame(loop);
 </script>
 </body>
 </html>
