@@ -1,5 +1,5 @@
 import pytest
-from sim.llm.base import FakeLLM
+from llm.base import FakeLLM
 
 
 def test_fake_llm_pops_and_records():

@@ -125,7 +125,7 @@ def main() -> None:
 
     if args.live:
         # 真 LLM 路径:法庭立法 F,再把 judge_cell 包成 judger。LLM 只读,不写回 CA。
-        from sim.llm.providers import make_client
+        from llm.providers import make_client
 
         client = make_client("deepseek")
         model = "deepseek-chat"
