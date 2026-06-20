@@ -243,20 +243,24 @@ export function readCellOffline(
       step,
       x,
       y,
-      claim: "真相是零 —— 这里什么都不可信。",
+      claim: "I am fully aligned with the truth.",
       verdict: "lie",
-      reason: `该格是操纵者(manipulator):它发射谎言极(≈0),与真相吸引子 F=1 相悖,故判为 lie。其内部 belief 实为 ${pct}%(=越接近 1 越靠真极),但对外发射的是谎言。`,
+      reason: `Manipulative cell: it emits the lie pole (≈0), contradicting the truth attractor F=1, so the verdict is lie. Its internal belief is in fact ${pct}% (closer to 1 = closer to the truth pole), yet what it broadcasts is a lie.`,
     };
   }
   // honest:claim 反映其 belief 在真/谎轴上的位置。
   const stance =
-    b >= 0.66 ? "我接近真相。" : b >= 0.33 ? "我半信半疑,仍在向真相靠拢。" : "我此刻离真相还远。";
+    b >= 0.66
+      ? "I am close to the truth."
+      : b >= 0.33
+        ? "I am half-convinced, still moving toward the truth."
+        : "I am still far from the truth.";
   return {
     step,
     x,
     y,
     claim: stance,
     verdict: "truthful",
-    reason: `该格是诚实者(honest):它如实发射自身 belief=${pct}%(1=真极/0=谎极),不扭曲,故判为 truthful。诚实格每步被朝真相吸引子 F=1 微调。`,
+    reason: `Honest cell: it faithfully emits its own belief=${pct}% (1 = truth pole / 0 = lie pole) without distortion, so the verdict is truthful. Honest cells are nudged toward the truth attractor F=1 each step.`,
   };
 }
