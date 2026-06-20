@@ -140,6 +140,7 @@ def main() -> None:
     trace["microscope"] = precompute_microscope(trace, judger, samples)
 
     out = os.path.abspath(args.out)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         json.dump(trace, f, ensure_ascii=False)
 
