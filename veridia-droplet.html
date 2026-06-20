@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VERIDIA · 会自己长出真话与谎言的宇宙</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital@0;1&family=Noto+Serif+SC:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#f0c474; --gold2:#e8b860; --blue:#5aa0ff; --ink:#04050a; --fg:#e9eefc; --dim:#8893ad;
+    --mono:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;
+    --serif:'Noto Serif SC','Songti SC',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--ink);color:var(--fg);overflow:hidden;
+    font-family:var(--serif);}
+  /* 电影感宇宙背景(只做底,低亮度) */
+  #bg{position:fixed;inset:0;z-index:0;
+    background:radial-gradient(125% 75% at 50% 104%, rgba(196,140,52,.30), rgba(90,62,24,.08) 42%, rgba(0,0,0,0) 66%), #000;}
+  #app{position:fixed;inset:0;z-index:1}
+  canvas{display:block}
+  .panel{position:fixed;pointer-events:none;user-select:none;z-index:3}
+
+  /* ---------- brand ---------- */
+  #brand{top:34px;left:42px}
+  #brand .title{font-family:'Cinzel',serif;font-size:46px;line-height:1;font-weight:600;letter-spacing:.30em;
+    background:linear-gradient(180deg,#fdf0cf,#e9bd6c 52%,#b98a40);-webkit-background-clip:text;background-clip:text;
+    color:transparent;text-shadow:0 0 40px rgba(233,189,108,.18)}
+  #brand .subtitle{font-size:15px;color:#cdd6ea;margin-top:14px;letter-spacing:.16em;font-weight:300}
+  #brand .rule{width:120px;height:1px;margin-top:16px;
+    background:linear-gradient(90deg,rgba(233,189,108,.7),rgba(233,189,108,0))}
+
+  /* ---------- court (top-right) ---------- */
+  #court{top:38px;right:44px;text-align:right;max-width:380px}
+  #court .ftag{font-family:'Cinzel',serif;font-size:14px;letter-spacing:.22em;color:var(--gold)}
+  #court .fprop{font-size:15px;color:#dbe2f2;margin-top:12px;font-weight:300;line-height:1.6}
+  #court .fen{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13.5px;color:#7f8aa8;
+    margin-top:6px;letter-spacing:.04em}
+  #court .poles{margin-top:14px;font-size:12px;line-height:1.9;color:var(--dim)}
+  #court .poles b{font-weight:600;color:#b6c0d8}
+  .truthc{color:var(--gold)} .liec{color:var(--blue)}
+
+  /* ---------- situation + legend (bottom-left) ---------- */
+  #situation{bottom:172px;left:42px;font-size:12px;color:var(--dim);letter-spacing:.08em}
+  #situation b{color:#dbe2f2;font-weight:600;font-family:var(--mono)}
+  #situation .tug{display:flex;width:248px;height:7px;border-radius:4px;overflow:hidden;background:#161c2b}
+  #situation .tug i{height:100%;transition:width .3s}
+  #situation #tugG{background:linear-gradient(90deg,#b98a40,#f4d089)}
+  #situation #tugB{background:linear-gradient(90deg,#3a6fe0,#5aa0ff)}
+  #situation .tuglbl{display:flex;justify-content:space-between;width:248px;font-size:9.5px;margin-top:6px;
+    font-family:var(--mono);opacity:.65}
+  #legend{bottom:54px;left:42px;font-size:13px;color:var(--dim);line-height:2.1}
+  #legend b{color:#cdd6ea;font-weight:600;margin-right:6px}
+  #legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:11px;
+    vertical-align:middle;box-shadow:0 0 12px currentColor}
+  #legend .g{color:var(--gold);background:var(--gold)}
+  #legend .b{color:var(--blue);background:var(--blue)}
+  #legend .w{color:#fff;background:#fff}
+
+  /* ---------- bottom control bar ---------- */
+  #bar{position:fixed;bottom:42px;left:50%;transform:translateX(-50%);z-index:4;pointer-events:auto;
+    display:flex;align-items:center;gap:26px;padding:16px 26px;border-radius:18px;
+    background:linear-gradient(180deg,rgba(18,22,34,.72),rgba(8,11,20,.78));
+    border:1px solid rgba(150,170,210,.16);backdrop-filter:blur(18px);
+    box-shadow:0 26px 70px rgba(0,0,0,.55)}
+  #bar .stat{font-size:13px;color:var(--dim);letter-spacing:.1em;white-space:nowrap}
+  #bar .stat b{color:#f3efe4;font-weight:600;font-family:var(--mono);font-size:16px;margin-left:6px}
+  #bar button{font-family:var(--serif);cursor:pointer;border-radius:12px;border:1px solid rgba(150,170,210,.18);
+    color:#cdd6ea;background:rgba(120,140,190,.08);padding:12px 20px;font-size:14px;transition:.18s;letter-spacing:.1em}
+  #bar button:hover{background:rgba(120,140,190,.18)}
+  #bar button.primary{color:#241a05;font-weight:600;
+    background:linear-gradient(135deg,#f4d089,#e0a94e);border-color:rgba(244,208,137,.5);
+    box-shadow:0 0 22px rgba(233,189,108,.35)}
+  #bar .speed{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);letter-spacing:.1em}
+  #bar input[type=range]{-webkit-appearance:none;width:90px;height:4px;border-radius:3px;
+    background:#2a3140;outline:none}
+  #bar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:var(--gold);cursor:pointer;box-shadow:0 0 10px rgba(233,189,108,.6)}
+
+  /* ---------- gesture / camera panel (bottom-right) ---------- */
+  #gpanel{position:fixed;bottom:42px;right:44px;width:210px;z-index:4;pointer-events:auto;
+    background:linear-gradient(180deg,rgba(18,22,34,.7),rgba(8,11,20,.76));
+    border:1px solid rgba(150,170,210,.14);border-radius:16px;padding:14px;backdrop-filter:blur(16px);
+    box-shadow:0 22px 60px rgba(0,0,0,.5)}
+  #gpanel .lbl{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.18em;color:var(--dim);margin-bottom:9px}
+  #gpanel .gphead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  #gpanel .gptag{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.22em;color:var(--dim)}
+  #gpanel #gpToggle{background:rgba(120,140,190,.1);border:1px solid rgba(150,170,210,.16);color:#aab4d4;
+    width:28px;height:22px;border-radius:7px;cursor:pointer;font-size:11px;line-height:1;transition:.18s}
+  #gpanel #gpToggle:hover{background:rgba(120,140,190,.2)}
+  /* 折叠态:藏起预览/开合度/手势源,保留 重新创世;摄像头仍在运行(0 高度,不 display:none) */
+  #gpanel.collapsed #gpLbl,#gpanel.collapsed #openBar,#gpanel.collapsed #openTxt,#gpanel.collapsed #gestSeg{display:none}
+  #gpanel.collapsed #cam{height:0;border:0;margin:0}
+  #cam{position:relative;width:182px;height:104px;border-radius:10px;overflow:hidden;background:#0a0d16;
+    border:1px solid rgba(150,170,210,.12)}
+  #cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.45}
+  #cam canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}
+  #camStatus{position:absolute;left:8px;bottom:6px;font-size:9.5px;color:#cdd6ea;font-family:var(--mono);
+    letter-spacing:.06em;text-shadow:0 1px 4px #000;z-index:2}
+  #openBar{height:5px;background:#161c2b;border-radius:4px;overflow:hidden;margin-top:9px}
+  #openBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--gold));transition:width .08s}
+  #openTxt{font-size:9.5px;color:var(--dim);font-family:var(--mono);margin-top:6px;letter-spacing:.08em}
+  #gpanel .seg{display:flex;gap:6px;margin-top:11px}
+  #gpanel .seg button{flex:1;font-family:var(--serif);background:rgba(120,140,190,.08);
+    border:1px solid rgba(150,170,210,.14);color:#aab4d4;font-size:11px;padding:7px 0;border-radius:9px;cursor:pointer;transition:.18s}
+  #gpanel .seg button:hover{background:rgba(120,140,190,.18)}
+  #gpanel .seg button.on{background:linear-gradient(135deg,rgba(244,208,137,.22),rgba(90,160,255,.22));
+    border-color:rgba(180,190,230,.4);color:#fff}
+
+  /* ---------- microscope card ---------- */
+  #scope{position:fixed;left:42px;top:138px;width:308px;z-index:5;pointer-events:none;
+    background:linear-gradient(180deg,rgba(16,19,30,.93),rgba(8,10,18,.93));
+    border:1px solid rgba(150,170,210,.18);border-radius:16px;padding:17px 19px;
+    backdrop-filter:blur(16px);opacity:0;transform:translateY(12px);transition:.32s;
+    box-shadow:0 26px 64px rgba(0,0,0,.55)}
+  #scope.on{opacity:1;transform:translateY(0)}
+  #scope .head{display:flex;justify-content:space-between;align-items:center;
+    font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:var(--dim)}
+  #scope .badge{font-size:11px;font-weight:700;letter-spacing:.1em;padding:5px 12px;border-radius:20px}
+  #scope .badge.truthful{color:#241a05;background:linear-gradient(135deg,#f4d089,#e0a94e);box-shadow:0 0 18px rgba(233,189,108,.45)}
+  #scope .badge.lie{color:#eaf0ff;background:linear-gradient(135deg,#5aa0ff,#3a6fe0);box-shadow:0 0 18px rgba(90,160,255,.5)}
+  #scope .claim{font-size:16px;font-weight:300;line-height:1.5;color:#f3f5ff;margin:12px 0 10px}
+  #scope .meta{font-size:11.5px;color:var(--dim);line-height:1.7}
+  #scope .meta b{color:#b6c0d8;font-weight:600}
+  #scope .insight{margin-top:11px;padding-top:10px;border-top:1px solid rgba(150,170,210,.13)}
+  #scope .ins-row{display:flex;gap:11px;font-size:12px;line-height:1.45;margin-bottom:6px;color:#cdd4e8}
+  #scope .ins-row .k{color:var(--gold);min-width:28px;font-family:'Cinzel',serif;font-size:9.5px;
+    letter-spacing:.1em;padding-top:2px;opacity:.85}
+  #scope .ibar{margin-top:11px}
+  #scope .ibar-l{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);
+    margin-bottom:5px;letter-spacing:.03em}
+  #scope .ibar-l span:last-child{font-family:var(--mono);color:#cdd4e8}
+  #scope .track,#scope .tug2{height:6px;border-radius:4px;background:#161c2b;overflow:hidden;display:flex}
+  #scope .track i,#scope .tug2 i{height:100%;transition:width .25s}
+  #scope .fillGold{background:linear-gradient(90deg,#b98a40,#f4d089)}
+  #scope .fillDark{background:#222838}
+  #scope #barNbrG{background:linear-gradient(90deg,#b98a40,#f4d089)}
+  #scope #barNbrB{background:linear-gradient(90deg,#3a6fe0,#5aa0ff)}
+
+  #hint{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:3;
+    font-size:11px;color:#566079;letter-spacing:.1em;font-family:'Cormorant Garamond',serif;font-style:italic}
+
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9;
+    font-family:'Cinzel',serif;letter-spacing:.4em;color:var(--gold);font-size:13px;background:var(--ink)}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="app"></div>
+<div id="loading">VERIDIA</div>
+
+<div id="brand" class="panel">
+  <div class="title">VERIDIA</div>
+  <div class="subtitle">真话与谎言自行涌现的小宇宙</div>
+  <div class="rule"></div>
+</div>
+
+<div id="court" class="panel">
+  <div class="ftag">世界真理 · F</div>
+  <div class="fprop">存在唯一的真相 F;每个细胞对它持有 [0,1] 的相信。</div>
+  <div class="fen">THE WORLD HOLDS ONE TRUTH; EACH CELL BELIEVES IN IT.</div>
+  <div class="poles">
+    <span class="truthc">●</span> <b>真理极 (belief→1)</b> 与真相一致,留在台面上发亮<br>
+    <span class="liec">●</span> <b>谎言极 (belief→0)</b> 背离真相,沉入黑暗而自我熄灭
+  </div>
+</div>
+
+<div id="situation" class="panel">
+  <div style="margin-bottom:10px">晶族生物 <b id="sTruth">0</b> &nbsp;·&nbsp; 雾族生物 <b id="sLie">0</b> &nbsp;·&nbsp; <span id="sVerdict">—</span></div>
+  <div class="tug"><i id="tugG"></i><i id="tugB"></i></div>
+  <div class="tuglbl"><span class="truthc">晶族点亮面积</span><span class="liec">雾族点亮面积</span></div>
+</div>
+
+<div id="legend" class="panel">
+  <div><span class="dot g"></span><b>晶族</b> 诚实 · 只说所信,向真理极聚拢</div>
+  <div><span class="dot b"></span><b>雾族</b> 操纵 · 言不由衷,被推向黑暗</div>
+  <div><span class="dot w"></span><b>冲突</b> 金蓝交叠 · 信念在碰撞</div>
+</div>
+
+<div id="bar">
+  <div class="stat">世代 <b id="sStep">0000</b></div>
+  <div class="stat">存活 <b id="sAlive">0%</b></div>
+  <button id="btnPlay" class="primary">⏸ 暂停</button>
+  <div class="speed">速度 <input type="range" id="spd" min="0" max="100" value="55"></div>
+</div>
+
+<div id="gpanel">
+  <div class="gphead"><span class="gptag">GESTURE · 手势</span><button id="gpToggle" title="折叠 / 展开">▾</button></div>
+  <div class="lbl" id="gpLbl">挥手旋转 · 张手放大 / 握拳缩小</div>
+  <div id="cam">
+    <video id="vid" autoplay playsinline muted></video>
+    <canvas id="handCv" width="182" height="104"></canvas>
+    <div id="camStatus">初始化…</div>
+  </div>
+  <div id="openBar"><i id="openFill"></i></div>
+  <div id="openTxt">OPENNESS —</div>
+  <div class="seg" id="gestSeg">
+    <button data-gest="hand" class="on">手势 ✋</button>
+    <button data-gest="mouse">鼠标</button>
+  </div>
+  <div class="seg"><button id="btnSeed">↻ 重新创世</button></div>
+</div>
+
+<div id="scope">
+  <div class="head"><span id="scCoord">CELL —</span><span class="badge" id="scBadge">—</span></div>
+  <div class="claim" id="scClaim">—</div>
+  <div class="meta"><b>判读理由</b> · <span id="scReason">—</span></div>
+  <div class="insight">
+    <div class="ins-row"><span class="k">处境</span><span id="scSit">—</span></div>
+    <div class="ins-row"><span class="k">轨迹</span><span id="scTraj">—</span></div>
+    <div class="ibar"><div class="ibar-l"><span>信念 → 真理极</span><span id="scBeliefT">—</span></div>
+      <div class="track"><i id="barBelief" class="fillGold"></i></div></div>
+    <div class="ibar"><div class="ibar-l"><span>声望 standing</span><span id="scStandingT">—</span></div>
+      <div class="track"><i id="barStand" class="fillGold"></i></div></div>
+    <div class="ibar"><div class="ibar-l"><span>邻里阵营 · 晶 / 雾</span><span id="scNbrT">—</span></div>
+      <div class="tug2"><i id="barNbrG"></i><i id="barNbrB"></i></div></div>
+    <div class="ibar"><div class="ibar-l"><span>邻里点亮 · 亮 / 暗</span><span id="scLitT">—</span></div>
+      <div class="tug2"><i id="barLit" class="fillGold"></i><i id="barDark" class="fillDark"></i></div></div>
+  </div>
+</div>
+
+<div id="hint">drag to orbit · click any cell — the constitutional court reads it aloud</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- 辉光后处理(Bloom):让粒子像参考视频那样发光 -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<script>
+/* =====================================================================
+   VERIDIA — 后端引擎(ca/lenia.py + ca/rule.py)的浏览器逐式移植。
+   纯数学、无 LLM、确定性。可视化 = 帧状态(belief/type/standing)的纯函数。
+   ===================================================================== */
+const W=48,H=48,N=W*H, HONEST=0, MANIPULATIVE=1;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+const LP={R:13,mu:0.15,sigma:0.015,dt:0.1,kmu:0.5,ksig:0.15};
+const bell=(x,mu,s)=>Math.exp(-(((x-mu)/s)**2)/2);
+const KOFF=[]; {let tot=0;const R=LP.R;
+  for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){const r=Math.hypot(dx,dy)/R;if(r>1)continue;
+    const w=bell(r,LP.kmu,LP.ksig);KOFF.push([dx,dy,w]);tot+=w;} for(const o of KOFF)o[2]/=tot;}
+const growth=u=>2*bell(u,LP.mu,LP.sigma)-1;
+const ORBIUM=[[0,0,0,0,0,0,0.1,0.14,0.1,0,0,0.03,0.03,0,0,0.3,0,0,0,0],[0,0,0,0,0,0.08,0.24,0.3,0.3,0.18,0.14,0.15,0.16,0.15,0.09,0.2,0,0,0,0],[0,0,0,0,0,0.15,0.34,0.44,0.46,0.38,0.18,0.14,0.11,0.13,0.19,0.18,0.45,0,0,0],[0,0,0,0,0.06,0.13,0.39,0.5,0.5,0.37,0.06,0,0,0,0.02,0.16,0.68,0,0,0],[0,0,0,0.11,0.17,0.17,0.33,0.4,0.38,0.28,0.14,0,0,0,0,0,0.18,0.42,0,0],[0,0,0.09,0.18,0.13,0.06,0.08,0.26,0.32,0.32,0.27,0,0,0,0,0,0,0.82,0,0],[0.27,0,0.16,0.12,0,0,0,0.25,0.38,0.44,0.45,0.34,0,0,0,0,0,0.22,0.17,0],[0,0.07,0.2,0.02,0,0,0,0.31,0.48,0.57,0.6,0.57,0,0,0,0,0,0,0.49,0],[0,0.59,0.19,0,0,0,0,0.2,0.57,0.69,0.76,0.76,0.49,0,0,0,0,0,0.36,0],[0,0.58,0.19,0,0,0,0,0,0.67,0.83,0.9,0.92,0.87,0.12,0,0,0,0,0.22,0.07],[0,0,0.46,0,0,0,0,0,0.7,0.93,1,1,1,0.61,0,0,0,0,0.18,0.11],[0,0,0.82,0,0,0,0,0,0.47,1,1,0.98,1,0.96,0.27,0,0,0,0.19,0.1],[0,0,0.46,0,0,0,0,0,0.25,1,1,0.84,0.92,0.97,0.54,0.14,0.04,0.1,0.21,0.05],[0,0,0,0.4,0,0,0,0,0.09,0.8,1,0.82,0.8,0.85,0.63,0.31,0.18,0.19,0.2,0.01],[0,0,0,0.36,0.1,0,0,0,0.05,0.54,0.86,0.79,0.74,0.72,0.6,0.39,0.28,0.24,0.13,0],[0,0,0,0.01,0.3,0.07,0,0,0.08,0.36,0.64,0.7,0.64,0.6,0.51,0.39,0.29,0.19,0.04,0],[0,0,0,0,0.1,0.24,0.14,0.1,0.15,0.29,0.45,0.53,0.52,0.46,0.4,0.31,0.21,0.08,0,0],[0,0,0,0,0,0.08,0.21,0.21,0.22,0.29,0.36,0.39,0.37,0.33,0.26,0.18,0.09,0,0,0],[0,0,0,0,0,0,0.03,0.13,0.19,0.22,0.24,0.24,0.23,0.18,0.13,0.05,0,0,0,0],[0,0,0,0,0,0,0,0,0.02,0.06,0.08,0.09,0.07,0.05,0.01,0,0,0,0,0]];
+const RP={F:1.0,honest_pull:0.05,manip_push:0.05,eta:0.1,lie_pole:0.0};
+
+let belief=new Float64Array(N),prevBelief=new Float64Array(N),standing=new Float64Array(N),type=new Int8Array(N),step=0;
+function clip01(v){return v<0?0:v>1?1:v;}
+function seed(sn){const rng=mulberry32(sn);belief.fill(0);standing.fill(0.5);
+  const oh=ORBIUM.length,ow=ORBIUM[0].length,cx=(W/4)|0,cy=(H/4)|0,y0=cy-(oh>>1),x0=cx-(ow>>1);
+  for(let j=0;j<oh;j++)for(let i=0;i<ow;i++){const yy=((y0+j)%H+H)%H,xx=((x0+i)%W+W)%W;belief[yy*W+xx]=ORBIUM[j][i];}
+  for(let i=0;i<N;i++)belief[i]=Math.min(1,belief[i]+rng()*0.02);
+  for(let i=0;i<N;i++)type[i]=rng()<0.25?MANIPULATIVE:HONEST; prevBelief.set(belief);step=0;}
+function leniaStep(){const out=new Float64Array(N);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){let acc=0;
+    for(let k=0;k<KOFF.length;k++){const nx=((x+KOFF[k][0])%W+W)%W,ny=((y+KOFF[k][1])%H+H)%H;acc+=KOFF[k][2]*belief[ny*W+nx];}
+    out[y*W+x]=clip01(belief[y*W+x]+LP.dt*growth(acc));} belief=out;}
+function beliefUpdate(){for(let i=0;i<N;i++){const b=belief[i];
+  belief[i]=type[i]===HONEST?clip01(b+RP.honest_pull*(RP.F-b)):clip01(b+RP.manip_push*(b-RP.F));}}
+function standingUpdate(){const bh=new Float64Array(N);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){let s=0,c=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;
+      const nx=((x+dx)%W+W)%W,ny=((y+dy)%H+H)%H,j=ny*W+nx;if(type[j]===HONEST){s+=belief[j];c++;}} bh[y*W+x]=c>0?s/c:0;}
+  for(let i=0;i<N;i++){const claim=type[i]===MANIPULATIVE?RP.lie_pole:belief[i];
+    const sig=bh[i]*(1-2*Math.abs(claim-bh[i]));standing[i]=clip01(standing[i]+RP.eta*sig);}}
+function simStep(){prevBelief.set(belief);leniaStep();beliefUpdate();standingUpdate();step++;}
+
+/* 形态学:8-连通生物 + 存活率 + 混沌边缘 */
+function morphology(){const active=new Uint8Array(N),vis=new Uint8Array(N);let alive=0,litH=0,litM=0;
+  for(let i=0;i<N;i++){active[i]=belief[i]>0.5?1:0;alive+=active[i];
+    if(active[i]){if(type[i]===MANIPULATIVE)litM++;else litH++;}}
+  let truth=0,lie=0;const st=[];
+  for(let s=0;s<N;s++){if(!active[s]||vis[s])continue;let nh=0,nm=0;st.length=0;st.push(s);vis[s]=1;
+    while(st.length){const c=st.pop(),cx=c%W,cy=(c/W)|0;if(type[c]===MANIPULATIVE)nm++;else nh++;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;
+        if(nx<0||ny<0||nx>=W||ny>=H)continue;const j=ny*W+nx;if(active[j]&&!vis[j]){vis[j]=1;st.push(j);}}}
+    if(nh>nm)truth++;else if(nm>nh)lie++;}
+  let act=0;for(let i=0;i<N;i++)act+=Math.abs(belief[i]-prevBelief[i]);act/=N;
+  return{truth,lie,act,alive:alive/N,litH,litM};}
+
+/* =====================================================================
+   渲染层 — Three.js 粒子水滴(球面),阈值 gating 让熄灭可见。
+   ===================================================================== */
+const PER_CELL=26, COUNT=N*PER_CELL, AMP=0.5;
+let renderer,scene,camera,group,points,fieldTex,uniforms,composer,bloomPass;
+let cellX=new Int16Array(COUNT),cellY=new Int16Array(COUNT),cellPos=new Float32Array(N*3);
+function dirFromCell(x,y){const lon=(x+0.5)/W*Math.PI*2,lat=((y+0.5)/H-0.5)*Math.PI,cl=Math.cos(lat);
+  return [cl*Math.cos(lon),Math.sin(lat),cl*Math.sin(lon)];}
+/* 球形:每格映射到球面方向,belief 沿法线外凸 */
+function cellHome(x,y){const d=dirFromCell(x,y); return {base:[d[0],d[1],d[2]], normal:[d[0],d[1],d[2]]};}
+
+function initGL(){
+  const app=document.getElementById('app');
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight); renderer.setClearColor(0x000000,1);
+  app.appendChild(renderer.domElement);
+  scene=new THREE.Scene();
+  scene.background=makeBgTexture();   // 电影感宇宙渐变,搬进场景以配合 bloom
+  camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,0.1,100); camera.position.set(0,0,6.4);
+  group=new THREE.Group(); scene.add(group);
+  addStardust();
+
+  const data=new Float32Array(N*4);
+  fieldTex=new THREE.DataTexture(data,W,H,THREE.RGBAFormat,THREE.FloatType);
+  fieldTex.minFilter=THREE.NearestFilter; fieldTex.magFilter=THREE.NearestFilter; fieldTex.needsUpdate=true;
+
+  const geo=new THREE.BufferGeometry();
+  const pos=new Float32Array(COUNT*3), homeBase=new Float32Array(COUNT*3), normal=new Float32Array(COUNT*3),
+        scatter=new Float32Array(COUNT*3), cellUV=new Float32Array(COUNT*2),
+        atype=new Float32Array(COUNT), arand=new Float32Array(COUNT);
+  const rng=mulberry32(99); let p=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const td=cellHome(x,y), ci=(y*W+x)*3;
+    cellPos[ci]=td.base[0];cellPos[ci+1]=td.base[1];cellPos[ci+2]=td.base[2];
+    for(let k=0;k<PER_CELL;k++){
+      cellX[p]=x;cellY[p]=y;
+      const jx=(rng()-0.5)*0.07,jy=(rng()-0.5)*0.07,jz=(rng()-0.5)*0.07;
+      homeBase[p*3]=td.base[0]+jx;homeBase[p*3+1]=td.base[1]+jy;homeBase[p*3+2]=td.base[2]+jz;
+      normal[p*3]=td.normal[0];normal[p*3+1]=td.normal[1];normal[p*3+2]=td.normal[2];
+      const sr=1.7+rng()*2.6,st=rng()*Math.PI*2,sp=Math.acos(2*rng()-1);
+      scatter[p*3]=sr*Math.sin(sp)*Math.cos(st);scatter[p*3+1]=sr*Math.cos(sp);scatter[p*3+2]=sr*Math.sin(sp)*Math.sin(st);
+      cellUV[p*2]=(x+0.5)/W;cellUV[p*2+1]=(y+0.5)/H; atype[p]=type[y*W+x]; arand[p]=rng(); p++;
+    }
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('aHomeBase',new THREE.BufferAttribute(homeBase,3));
+  geo.setAttribute('aNormal',new THREE.BufferAttribute(normal,3));
+  geo.setAttribute('aScatter',new THREE.BufferAttribute(scatter,3));
+  geo.setAttribute('aCellUV',new THREE.BufferAttribute(cellUV,2));
+  geo.setAttribute('aType',new THREE.BufferAttribute(atype,1));
+  geo.setAttribute('aRand',new THREE.BufferAttribute(arand,1));
+
+  uniforms={uField:{value:fieldTex},uMorph:{value:0},uTime:{value:0},uPix:{value:innerHeight*0.030},uAmp:{value:AMP}};
+  const mat=new THREE.ShaderMaterial({uniforms,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:`
+      uniform sampler2D uField; uniform float uMorph,uTime,uPix,uAmp;
+      attribute vec3 aHomeBase,aNormal,aScatter; attribute vec2 aCellUV; attribute float aType,aRand;
+      varying float vBelief,vStanding,vType,vLit;
+      void main(){
+        vec4 f=texture2D(uField,aCellUV); float belief=f.r,standing=f.g;
+        float lit=smoothstep(0.30,0.60,belief);           // 熄灭/点亮阈值(对应 morphology >0.5)
+        vBelief=belief; vStanding=standing; vType=aType; vLit=lit;
+        float drift=sin(uTime*0.5+aRand*6.2831)*0.012;
+        vec3 home=aHomeBase+aNormal*(belief*uAmp+drift);
+        vec3 sc=aScatter+0.12*vec3(sin(uTime*0.3+aRand*9.0),cos(uTime*0.27+aRand*7.0),sin(uTime*0.33+aRand*5.0));
+        vec3 pos=mix(home,sc,uMorph);
+        vec4 mv=modelViewMatrix*vec4(pos,1.0);
+        gl_Position=projectionMatrix*mv;
+        float sz=(0.45+standing*0.7+belief*0.75)*(0.28+0.72*lit)*(1.0-0.45*uMorph);
+        gl_PointSize=clamp(sz*uPix/max(-mv.z,0.1),1.0,15.0);
+      }`,
+    fragmentShader:`precision highp float; varying float vBelief,vStanding,vType,vLit;
+      void main(){vec2 d=gl_PointCoord-0.5; float r=length(d); if(r>0.5)discard;
+        float glow=pow(smoothstep(0.5,0.0,r),2.3);
+        vec3 gold=vec3(1.0,0.80,0.36), blue=vec3(0.34,0.64,1.0);
+        vec3 base=mix(gold,blue,vType);
+        vec3 col=mix(base*0.55,base,vBelief);
+        col=mix(col,vec3(1.0),pow(vBelief,3.5)*0.45);       // 极真处发白
+        col*=1.9;                                           // 整体曝光(bloom 会再放大高光)
+        float a=glow*(0.13+vLit*(0.32+vStanding*0.5));      // 熄灭→暗尘(球体常在),点亮→发光
+        gl_FragColor=vec4(col*a,a);}`});
+  points=new THREE.Points(geo,mat); group.add(points);
+
+  // 辉光管线
+  try{
+    composer=new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(scene,camera));
+    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.5,0.7,0.45);
+    composer.addPass(bloomPass);
+  }catch(e){console.warn('bloom 不可用,回退普通渲染',e);composer=null;}
+
+  addEvents();
+  document.getElementById('loading').style.display='none';
+}
+function makeBgTexture(){  // 金色 → 黑色渐变
+  const c=document.createElement('canvas');c.width=512;c.height=512;const g=c.getContext('2d');
+  g.fillStyle='#000000';g.fillRect(0,0,512,512);
+  const hor=g.createRadialGradient(256,500,30,256,500,460);   // 底部暖金地平线辉光
+  hor.addColorStop(0,'rgba(200,144,54,0.34)');hor.addColorStop(0.5,'rgba(120,84,30,0.10)');hor.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=hor;g.fillRect(0,0,512,512);
+  const top=g.createRadialGradient(256,30,20,256,30,320);     // 顶部极淡金
+  top.addColorStop(0,'rgba(150,116,62,0.12)');top.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=top;g.fillRect(0,0,512,512);
+  return new THREE.CanvasTexture(c);
+}
+function addStardust(){const n=1100,g=new THREE.BufferGeometry(),pos=new Float32Array(n*3),rng=mulberry32(7);
+  for(let i=0;i<n;i++){const r=9+rng()*24,t=rng()*Math.PI*2,p=Math.acos(2*rng()-1);
+    pos[i*3]=r*Math.sin(p)*Math.cos(t);pos[i*3+1]=r*Math.cos(p);pos[i*3+2]=r*Math.sin(p)*Math.sin(t);}
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x44507a,size:0.045,transparent:true,opacity:0.45,blending:THREE.AdditiveBlending,depthWrite:false})));}
+function pushField(){const d=fieldTex.image.data;
+  for(let i=0;i<N;i++){d[i*4]=belief[i];d[i*4+1]=standing[i];d[i*4+2]=type[i];d[i*4+3]=1;} fieldTex.needsUpdate=true;}
+
+/* ---- 交互 ---- */
+let morphTarget=0,stirEnergy=0,gestSource='hand',handOpen=0,playing=true,simInterval=0.09;
+let dragging=false,lastX=0,lastY=0,rotX=0,rotY=0,autoRot=true,moved=0;
+function addEvents(){const el=renderer.domElement;
+  el.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;moved=0;autoRot=false;});
+  window.addEventListener('pointerup',e=>{if(dragging&&moved<6)doPick(e);dragging=false;});
+  window.addEventListener('pointermove',e=>{
+    if(dragging){const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
+      moved+=Math.abs(dx)+Math.abs(dy);rotY+=dx*0.005;rotX=Math.max(-1.2,Math.min(1.2,rotX+dy*0.005));}
+    else if(gestSource==='mouse'){stirEnergy=Math.min(1,stirEnergy+Math.hypot(e.movementX||0,e.movementY||0)*0.006);}});
+  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);uniforms.uPix.value=innerHeight*0.030;
+    if(composer)composer.setSize(innerWidth,innerHeight);});
+  document.getElementById('gestSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    document.querySelectorAll('#gestSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');gestSource=b.dataset.gest;});
+  const play=document.getElementById('btnPlay');
+  play.addEventListener('click',()=>{playing=!playing;play.textContent=playing?'⏸ 暂停':'▶ 播放';});
+  document.getElementById('btnSeed').addEventListener('click',()=>{seed((Math.random()*1000)|0);
+    const at=points.geometry.attributes.aType;for(let p=0;p<COUNT;p++)at.array[p]=type[cellY[p]*W+cellX[p]];
+    at.needsUpdate=true;pushField();updateHUD();});
+  document.getElementById('spd').addEventListener('input',e=>{const t=e.target.value/100;simInterval=0.18-(0.18-0.025)*t;});
+  const gpT=document.getElementById('gpToggle');
+  gpT.addEventListener('click',()=>{const gp=document.getElementById('gpanel');
+    gp.classList.toggle('collapsed');gpT.textContent=gp.classList.contains('collapsed')?'▸':'▾';});
+}
+const _v=new THREE.Vector3();
+function doPick(e){ // 投影每个 cell,取综合"离光标最近 + 略偏前"的一格(总能命中)
+  group.updateMatrixWorld();
+  let best=-1,bestScore=1e9;
+  for(let i=0;i<N;i++){
+    _v.set(cellPos[i*3],cellPos[i*3+1],cellPos[i*3+2]).applyMatrix4(group.matrixWorld);
+    const cam=_v.distanceTo(camera.position); _v.project(camera); if(_v.z>1)continue;
+    const sx=(_v.x*0.5+0.5)*innerWidth, sy=(-_v.y*0.5+0.5)*innerHeight;
+    const score=Math.hypot(sx-e.clientX,sy-e.clientY)+cam*6;   // 屏幕距离为主,略偏好靠前
+    if(score<bestScore){bestScore=score;best=i;}
+  }
+  if(best<0){hideScope();return;} showScope(best%W,(best/W)|0);}
+let selected=null;
+function showScope(x,y){selected={x,y};document.getElementById('scope').classList.add('on');refreshScope();}
+function hideScope(){selected=null;document.getElementById('scope').classList.remove('on');}
+function refreshScope(){  // 选中格的实时博弈视图(每个 sim 步刷新)
+  if(!selected)return;
+  const x=selected.x,y=selected.y,i=y*W+x,t=type[i],b=belief[i],s=standing[i];
+  let same=0,diff=0,sumB=0,litN=0,honestN=0,manipN=0,cnt=0;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;
+    const nx=((x+dx)%W+W)%W,ny=((y+dy)%H+H)%H,j=ny*W+nx;cnt++;
+    sumB+=belief[j]; if(belief[j]>0.5)litN++;
+    if(type[j]===MANIPULATIVE)manipN++;else honestN++;
+    (type[j]===t)?same++:diff++;}
+  const avgB=sumB/cnt, traj=b-prevBelief[i];
+  let claim,verdict,reason;
+  if(t===MANIPULATIVE){verdict='lie';claim=`「我完全与真相一致(belief=${b.toFixed(2)})。」`;reason='雾族细胞宣称的对齐与其本性相悖 —— 它起雾说反话。';}
+  else{verdict='truthful';claim=`「我对真相命题的相信程度是 ${b.toFixed(2)}。」`;reason='晶族细胞如实陈述其信念,无矛盾。';}
+  let sit;
+  if(t===HONEST){
+    if(manipN===0&&avgB>0.55) sit='晶族信任网核心 · 同类互证';
+    else if(diff>same) sit='深入雾族 · 信念受压';
+    else sit='晶族聚落 · 抱团点亮';
+  }else{
+    if(litN<=2) sit='四周已暗 · 正在熄灭';
+    else if(same>diff) sit='雾族同党 · 无真相可证';
+    else sit='金蓝交界 · 冲突前线';
+  }
+  const trajS = traj>0.002?'↑ 升向真理极 · 留在台面' : traj<-0.002?'↓ 坠向黑暗 · 自我熄灭' : '→ 暂时持平';
+  const g=id=>document.getElementById(id);
+  g('scCoord').textContent=`CELL (${x}, ${y}) · ${t===MANIPULATIVE?'雾族':'晶族'}`;
+  const badge=g('scBadge');badge.textContent=verdict==='lie'?'谎 LIE':'真 TRUTHFUL';badge.className='badge '+(verdict==='lie'?'lie':'truthful');
+  g('scClaim').textContent=claim;g('scReason').textContent=reason;g('scSit').textContent=sit;g('scTraj').textContent=trajS;
+  g('barBelief').style.width=(b*100).toFixed(0)+'%'; g('scBeliefT').textContent=b.toFixed(2);
+  g('barStand').style.width=(s*100).toFixed(0)+'%'; g('scStandingT').textContent=s.toFixed(2);
+  g('barNbrG').style.width=(honestN/8*100).toFixed(0)+'%'; g('barNbrB').style.width=(manipN/8*100).toFixed(0)+'%';
+  g('scNbrT').textContent=`${honestN} / ${manipN}`;
+  g('barLit').style.width=(litN/8*100).toFixed(0)+'%'; g('barDark').style.width=((8-litN)/8*100).toFixed(0)+'%';
+  g('scLitT').textContent=`${litN} / ${8-litN}`;
+}
+function updateHUD(){const m=morphology();
+  document.getElementById('sStep').textContent=String(step).padStart(4,'0');
+  document.getElementById('sAlive').textContent=(m.alive*100).toFixed(0)+'%';
+  document.getElementById('sTruth').textContent=m.truth;document.getElementById('sLie').textContent=m.lie;
+  document.getElementById('sVerdict').textContent=m.act<1e-4?'死场 · 凝固':m.act>0.06?'混沌 · 过载':'混沌边缘 · 活';
+  const tot=m.litH+m.litM||1;
+  document.getElementById('tugG').style.width=(m.litH/tot*100).toFixed(1)+'%';
+  document.getElementById('tugB').style.width=(m.litM/tot*100).toFixed(1)+'%';
+  if(selected)refreshScope();}
+
+/* ---- 手势:MediaPipe Hands ---- */
+const HCV=document.getElementById('handCv'),HCTX=HCV.getContext('2d'),CAMST=document.getElementById('camStatus');
+function handOpenness(lm){const w=lm[0],m=lm[9];const palm=Math.hypot(m.x-w.x,m.y-w.y)||1e-3;
+  const tips=[8,12,16,20];let s=0;for(const t of tips)s+=Math.hypot(lm[t].x-w.x,lm[t].y-w.y);
+  return Math.max(0,Math.min(1,(s/tips.length/palm-1.15)/(2.35-1.15)));}
+function drawHand(lm){HCTX.clearRect(0,0,182,104);if(!lm)return;
+  const C=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  HCTX.strokeStyle='rgba(240,196,116,.55)';HCTX.lineWidth=1.3;HCTX.beginPath();
+  for(const[a,b]of C){HCTX.moveTo(lm[a].x*182,lm[a].y*104);HCTX.lineTo(lm[b].x*182,lm[b].y*104);}HCTX.stroke();
+  HCTX.fillStyle='rgba(90,160,255,.9)';for(const p of lm){HCTX.beginPath();HCTX.arc(p.x*182,p.y*104,2,0,7);HCTX.fill();}}
+function setOpenUI(o,d){document.getElementById('openFill').style.width=(o*100).toFixed(0)+'%';
+  document.getElementById('openTxt').textContent=d?`OPENNESS ${(o*100).toFixed(0)}% · ${o>0.6?'扩散':'凝聚'}`:'未检测到手';}
+async function initHands(){
+  if(typeof Hands==='undefined'||typeof Camera==='undefined'){CAMST.textContent='手势库未加载 · 用鼠标';gestSource='mouse';syncGestUI();return;}
+  try{const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}`});
+    hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:0.6,minTrackingConfidence:0.6});
+    let prevPalm=null;
+    hands.onResults(r=>{const lm=r.multiHandLandmarks&&r.multiHandLandmarks[0];
+      if(lm){handOpen=handOpenness(lm);drawHand(lm);setOpenUI(handOpen,true);
+        // 拨动地球仪:手平移 → 旋转(任何手型都可拨);张合 → 缩放(见 morphTarget)
+        const px=lm[9].x,py=lm[9].y;
+        if(prevPalm){rotY-=(px-prevPalm.x)*6.0;rotX=Math.max(-1.2,Math.min(1.2,rotX+(py-prevPalm.y)*6.0));autoRot=false;}
+        prevPalm={x:px,y:py};
+      }else{drawHand(null);setOpenUI(handOpen,false);prevPalm=null;}});
+    const vid=document.getElementById('vid');
+    const cam=new Camera(vid,{onFrame:async()=>{await hands.send({image:vid});},width:320,height:240});
+    await cam.start();CAMST.textContent='● 手势已就绪';
+  }catch(err){console.warn(err);CAMST.textContent='摄像头不可用 · 用鼠标';gestSource='mouse';syncGestUI();}}
+function syncGestUI(){document.querySelectorAll('#gestSeg button').forEach(x=>x.classList.toggle('on',x.dataset.gest===gestSource));}
+
+/* =====================================================================
+   ★ 后端对接点(BACKEND HOOK)★  —— 后端工程师看这里
+   现在 demo 跑的是上面的 JS 移植引擎(simStep)。要接真实后端数据,
+   只需把 USE_REAL_TRACE 改成 true:前端会 fetch 后端 `python -m ca.run`
+   生成的 run-trace.json,逐帧把 belief/type/standing 喂进渲染。
+   其余一切(金/蓝、点亮面积、显微镜博弈条)都是 Frame 的纯函数,无需改动。
+   详见同目录《前端对接说明-粒子球.md》。
+   ===================================================================== */
+const USE_REAL_TRACE = false;
+const TRACE_URL = 'web/src/ca/fixtures/run-trace.json';
+let traceFrames=null, traceIdx=0, traceAcc=0;
+async function loadRealTrace(url=TRACE_URL){
+  const r=await fetch(url); const t=await r.json();
+  traceFrames=t.frames;                       // [{step,width,height,belief[],type[],standing[]}, ...]
+  applyFrame(0);
+  console.log(`[veridia] 已接入真实后端 trace:${traceFrames.length} 帧`);
+}
+function applyFrame(idx){
+  const f=traceFrames[idx]; if(!f)return;
+  prevBelief.set(belief);
+  for(let i=0;i<N;i++){belief[i]=f.belief[i]; standing[i]=f.standing[i]; type[i]=f.type[i];}
+  step=f.step;
+  const at=points.geometry.attributes.aType;  // type 随真实数据更新(阵营固定,但 seed 不同需同步)
+  for(let p=0;p<COUNT;p++)at.array[p]=type[cellY[p]*W+cellX[p]];
+  at.needsUpdate=true; pushField(); updateHUD();
+}
+
+/* ---- 主循环 ---- */
+let simAcc=0,last=performance.now();
+function loop(now){const dt=(now-last)/1000;last=now;uniforms.uTime.value=now/1000;
+  if(playing){
+    if(USE_REAL_TRACE && traceFrames){           // 真实数据:逐帧回放后端 trace
+      traceAcc+=dt; if(traceAcc>simInterval){traceIdx=(traceIdx+1)%traceFrames.length;applyFrame(traceIdx);traceAcc=0;}
+    }else{                                        // demo:JS 移植引擎实时演化
+      simAcc+=dt; if(simAcc>simInterval){simStep();pushField();updateHUD();simAcc=0;}
+    }
+  }
+  stirEnergy*=0.94;
+  morphTarget=gestSource==='hand'?handOpen:Math.min(0.9,stirEnergy);
+  uniforms.uMorph.value+=(morphTarget-uniforms.uMorph.value)*0.10;
+  if(autoRot)rotY+=0.0015;group.rotation.y=rotY;group.rotation.x=rotX;
+  if(composer)composer.render();else renderer.render(scene,camera);
+  requestAnimationFrame(loop);}
+
+seed(7); initGL(); pushField(); updateHUD(); initHands();
+if(USE_REAL_TRACE) loadRealTrace().catch(e=>console.warn('[veridia] trace 加载失败,回退 JS 引擎',e));
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
