@@ -35,13 +35,17 @@
 ## 3. 视觉语言
 
 - **belief ∈ [0,1] → 密度 ramp(10 级)**:`· .:-=+*#%@`(块字 `· ░▒▓█` 为备选)。这是"远看涌现的生物"的来源。
-- **type → 调色板(阵营靠颜色)**:
-  - 晶族(honest)暖端:`#FFE3A8 → #F6C66B → #C98A3A`
-  - 雾族(manipulative)冷端:`#2A6F97 → #5DECF5 → #0B2A3A`
-  - 每个字符的颜色 = 按该格 belief 在其阵营色阶上取值。
-- **bloom**:高 belief 字符叠加色混合(`globalCompositeOperation='lighter'`)→ 生物"发亮",用字符实现原辉光意图。
-- **standing → 字符 alpha**:高 standing=更实、低=更虚(subtle,不抢 belief 的主表达)。
-- **CRT 后处理**:扫描线 + 轻 vignette + magic-hour 暖膜薄铺;可选色差。底色近黑深空 `#0E1024`。
+- **type → 三色调色板(对齐前端视觉参考 JSON `recommended_design_tokens`)**:
+  - 晶族(honest · 真)暖端 dim→primary:`#986658 → #D1947F → #FADEC9`
+  - 雾族(manipulative · 谎)冷端 dim→primary:`#09284E → #297AB5 → #55ADD7`
+  - **冲突 / 不确定(belief 中间带、信念碰撞)rose-violet**:`#533774 → #734F90 → #CA7EA5`
+  - 取色 = 按 belief 在其阵营色阶取值,再按不确定度 `1-|belief-0.5|*2` 向冲突色混(峰值约 0.55)。
+- **bloom / 体积光**:`globalCompositeOperation='lighter'` + 自身模糊叠加(`filter:blur`)→ 生物发亮、膜状辉光。
+- **standing → 字符 alpha**:高=实、低=虚(subtle,不抢 belief)。
+- **背景**:宇宙虚空 `canvas_background #000001` + 多层径向星云尘埃(紫/蓝/暖)+ 深度负空间;**不用终端硬边框**(对齐 JSON negative:no hard grid / no panel / no minecraft squares)。
+- **UI / 文字 tokens**:`text_primary #CCD9E8`、`text_secondary #95829D`、`surface_panel #070509`、`border #2A1E29`;镌刻衬线标题(VERIDIA)+ mono 数字读数。
+- 字体:等宽渲染字符场;`imageSmoothingEnabled=false`。
+- **参考实现**:`ascii-universe.html`(自包含 artifact,已 Playwright 验证)。
 - 字体:等宽(优先系统等宽 / 可选 Monocraft 体素气质),`imageSmoothingEnabled=false`、整数像素对齐。
 
 **渲染态示意**(暖/冷在真实里靠颜色分,这里都用密度示意):
