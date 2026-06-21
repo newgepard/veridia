@@ -200,7 +200,7 @@
     <button data-gest="hand" class="on">手势 ✋</button>
     <button data-gest="mouse">鼠标</button>
   </div>
-  <div class="seg"><button id="btnSeed">↻ 重新创世</button></div>
+  <div class="seg"><button id="btnSeed">↻ 重播</button></div>
 </div>
 
 <div id="scope">
@@ -366,6 +366,7 @@ function initGL(){
         col=mix(col,vec3(1.0),pow(vBelief,3.5)*0.45);       // 极真处发白
         col*=1.9;                                           // 整体曝光(bloom 会再放大高光)
         float a=glow*(0.13+vLit*(0.32+vStanding*0.5));      // 熄灭→暗尘(球体常在),点亮→发光
+        if(vType>0.5) a=max(a,glow*0.32);                   // 蓝族余烬:belief 低也保留可见暗蓝点(谎言未散尽)
         gl_FragColor=vec4(col*a,a);}`});
   points=new THREE.Points(geo,mat); group.add(points);
 
@@ -400,7 +401,7 @@ function pushField(){const d=fieldTex.image.data;
   for(let i=0;i<N;i++){d[i*4]=belief[i];d[i*4+1]=standing[i];d[i*4+2]=type[i];d[i*4+3]=1;} fieldTex.needsUpdate=true;}
 
 /* ---- 交互 ---- */
-let morphTarget=0,stirEnergy=0,gestSource='hand',handOpen=0,playing=true,simInterval=0.09;
+let morphTarget=0,stirEnergy=0,gestSource='hand',handOpen=0,playing=true,simInterval=0.22;
 let dragging=false,lastX=0,lastY=0,rotX=0,rotY=0,autoRot=true,moved=0;
 function addEvents(){const el=renderer.domElement;
   el.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;moved=0;autoRot=false;});
@@ -416,10 +417,14 @@ function addEvents(){const el=renderer.domElement;
     document.querySelectorAll('#gestSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');gestSource=b.dataset.gest;});
   const play=document.getElementById('btnPlay');
   play.addEventListener('click',()=>{playing=!playing;play.textContent=playing?'⏸ 暂停':'▶ 播放';});
-  document.getElementById('btnSeed').addEventListener('click',()=>{seed((Math.random()*1000)|0);
+  document.getElementById('btnSeed').addEventListener('click',()=>{
+    if(USE_REAL_TRACE && traceFrames){            // 录像模式:从头重播这局后端 trace
+      traceIdx=0;traceAcc=0;applyFrame(0);return;
+    }
+    seed((Math.random()*1000)|0);                  // JS fallback:重新随机创世
     const at=points.geometry.attributes.aType;for(let p=0;p<COUNT;p++)at.array[p]=type[cellY[p]*W+cellX[p]];
     at.needsUpdate=true;pushField();updateHUD();});
-  document.getElementById('spd').addEventListener('input',e=>{const t=e.target.value/100;simInterval=0.18-(0.18-0.025)*t;});
+  document.getElementById('spd').addEventListener('input',e=>{const t=e.target.value/100;simInterval=0.4-(0.4-0.05)*t;});
   const gpT=document.getElementById('gpToggle');
   gpT.addEventListener('click',()=>{const gp=document.getElementById('gpanel');
     gp.classList.toggle('collapsed');gpT.textContent=gp.classList.contains('collapsed')?'▸':'▾';});
@@ -522,7 +527,7 @@ function syncGestUI(){document.querySelectorAll('#gestSeg button').forEach(x=>x.
    其余一切(金/蓝、点亮面积、显微镜博弈条)都是 Frame 的纯函数,无需改动。
    详见同目录《前端对接说明-粒子球.md》。
    ===================================================================== */
-const USE_REAL_TRACE = false;
+const USE_REAL_TRACE = true;   // 默认接后端真实 trace;加载失败自动回退 JS 引擎(见文件末 loadRealTrace().catch)
 const TRACE_URL = 'web/src/ca/fixtures/run-trace.json';
 let traceFrames=null, traceIdx=0, traceAcc=0;
 async function loadRealTrace(url=TRACE_URL){
@@ -546,7 +551,7 @@ let simAcc=0,last=performance.now();
 function loop(now){const dt=(now-last)/1000;last=now;uniforms.uTime.value=now/1000;
   if(playing){
     if(USE_REAL_TRACE && traceFrames){           // 真实数据:逐帧回放后端 trace
-      traceAcc+=dt; if(traceAcc>simInterval){traceIdx=(traceIdx+1)%traceFrames.length;applyFrame(traceIdx);traceAcc=0;}
+      traceAcc+=dt; if(traceAcc>simInterval){if(traceIdx<traceFrames.length-1){traceIdx++;applyFrame(traceIdx);}traceAcc=0;}  // 播到末帧停住,不绕回(点「↻ 重播」从头)
     }else{                                        // demo:JS 移植引擎实时演化
       simAcc+=dt; if(simAcc>simInterval){simStep();pushField();updateHUD();simAcc=0;}
     }

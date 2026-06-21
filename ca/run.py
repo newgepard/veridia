@@ -37,7 +37,7 @@ OUT_PATH = os.path.join(
 CONFIG = {
     "width": 48,
     "height": 48,
-    "steps": 80,
+    "steps": 150,         # 80→150:看清前期熄灭→后期复活→长期平衡的完整弧线(→76 帧)
     "seed": 7,
     "stride": 2,          # 每 2 步留一帧,控 JSON 体积
     "round_dp": 3,        # belief/standing 保留 3 位小数
