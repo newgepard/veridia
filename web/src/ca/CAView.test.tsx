@@ -26,15 +26,18 @@ test("step slider is present and changes the rendered step", () => {
 
 test("microscope panel shows a hint when nothing is selected", () => {
   render(<CAView />);
-  expect(screen.getByTestId("microscope-panel")).toHaveTextContent(/点一个格子/);
+  expect(screen.getByTestId("microscope-panel")).toHaveTextContent(/click any cell/i);
 });
 
 // ---- 模式切换 + 实时模式 ----
 
 test("默认是回放模式,有模式切换按钮", () => {
   render(<CAView />);
+  expect(screen.getByTestId("ca-shell-title")).toHaveTextContent("VERIDIA");
   expect(screen.getByTestId("ca-mode-replay")).toBeInTheDocument();
   expect(screen.getByTestId("ca-mode-live")).toBeInTheDocument();
+  expect(screen.getByTestId("ca-mode-replay")).toHaveTextContent("REPLAY");
+  expect(screen.getByTestId("ca-mode-live")).toHaveTextContent("LIVE");
   // 默认回放:回放滑块在场
   expect(screen.getByTestId("ca-step")).toBeInTheDocument();
 });
@@ -68,7 +71,7 @@ test("切回回放模式仍可用", () => {
   fireEvent.click(screen.getByTestId("ca-mode-live"));
   fireEvent.click(screen.getByTestId("ca-mode-replay"));
   expect(screen.getByTestId("ca-step")).toBeInTheDocument();
-  expect(screen.getByTestId("microscope-panel")).toHaveTextContent(/点一个格子/);
+  expect(screen.getByTestId("microscope-panel")).toHaveTextContent(/click any cell/i);
 });
 
 // ---- 确定性离线判读模板:方向正确 ----
